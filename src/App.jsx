@@ -762,12 +762,86 @@ function InterviewModule() {
   const [practice, setPractice] = useState(null);
   const [answer, setAnswer] = useState("");
   const questions = tab === "Company-wise" ? MOCK_INTERVIEW["Company-wise"][companyTab] : MOCK_INTERVIEW[tab];
+  const categories = [
+    { id: "HR", icon: "groups", label: "HR Questions", tag: "Behavioral", desc: "Master the STAR method and refine your personal narrative for behavioral rounds." },
+    { id: "Technical", icon: "terminal", label: "Technical Rounds", tag: "Technical", desc: "Deep dives into DSA, DBMS, OS, OOP, and high-stakes technical fundamentals." },
+    { id: "Company-wise", icon: "business", label: "Company Specific", tag: "Elite Firms", desc: "Targeted preparation for TCS, Infosys, Wipro, and other campus recruiters." },
+  ];
+
   return (
-    <section>
-      <h2 style={{ color: COLORS.text }}>Interview Preparation</h2>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: "1rem" }}>{["HR", "Technical", "Company-wise"].map((item) => <Button key={item} onClick={() => setTab(item)} variant={tab === item ? "primary" : "secondary"} size="sm">{item}</Button>)}</div>
-      {tab === "Company-wise" && <div style={{ display: "flex", gap: 8, marginBottom: "1rem" }}>{Object.keys(MOCK_INTERVIEW["Company-wise"]).map((item) => <Button key={item} onClick={() => setCompanyTab(item)} variant={companyTab === item ? "success" : "secondary"} size="sm">{item}</Button>)}</div>}
-      <div style={{ display: "grid", gap: 12 }}>{questions.map((q, i) => <Card key={q}><div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}><div style={{ color: COLORS.text, fontWeight: 700 }}>Q{i + 1}. {q}<p style={{ color: COLORS.textMuted, fontWeight: 400, fontSize: 13 }}>Tip: use the STAR method and include a real project or academic example.</p></div><Button onClick={() => { setPractice(practice === q ? null : q); setAnswer(""); }} variant="outline" size="sm">Practice</Button></div>{practice === q && <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 12 }}><textarea value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder="Type your answer here..." style={{ ...inputStyle, minHeight: 100, resize: "vertical" }} /><p style={{ color: answer.length > 40 ? COLORS.success : COLORS.textMuted, fontSize: 13 }}>{answer.length > 40 ? "Good start. Add one measurable result to make it stronger." : "Write a short structured answer to receive practice feedback."}</p></div>}</Card>)}</div>
+    <section className="interview-page">
+      <div className="interview-hero">
+        <div>
+          <h1>Ace Your <span>Dream Career</span></h1>
+          <p>Master the art of the interview with professional resources tailored for campus placements and elite roles.</p>
+        </div>
+        <div className="interview-streak">
+          <span className="material-symbols-outlined">local_fire_department</span>
+          <div><strong>12 Days</strong><small>Daily Streak</small></div>
+        </div>
+      </div>
+
+      <div className="interview-quote">
+        <span className="material-symbols-outlined">format_quote</span>
+        <h2>Preparation is the key to success. The most prepared candidates are the ones who define the future.</h2>
+        <p>PrepNexus Mentor Circle</p>
+      </div>
+
+      <div className="interview-category-grid">
+        {categories.map((item) => (
+          <button key={item.id} onClick={() => { setTab(item.id); setPractice(null); }} className={tab === item.id ? "active" : ""}>
+            <div>
+              <span className="material-symbols-outlined">{item.icon}</span>
+              <small>{item.tag}</small>
+            </div>
+            <h3>{item.label}</h3>
+            <p>{item.desc}</p>
+            <strong>{item.id === "Technical" ? "Practice Problems" : item.id === "Company-wise" ? "View Roadmaps" : "Explore Topics"} <span className="material-symbols-outlined">arrow_forward</span></strong>
+          </button>
+        ))}
+      </div>
+
+      {tab === "Company-wise" && (
+        <div className="company-tabs">
+          {Object.keys(MOCK_INTERVIEW["Company-wise"]).map((item) => <button key={item} onClick={() => setCompanyTab(item)} className={companyTab === item ? "active" : ""}>{item}</button>)}
+        </div>
+      )}
+
+      <div className="practice-head">
+        <h2><span className="material-symbols-outlined">edit_note</span>Practice Arena: <b>{tab === "Company-wise" ? companyTab : tab} Questions</b></h2>
+        <div><span>Progress: 2/10 completed</span><i><b /></i></div>
+      </div>
+
+      <div className="interview-question-list">
+        {questions.map((q, i) => (
+          <article key={q} className="interview-question-card">
+            <div className="question-number">{i + 1}</div>
+            <div>
+              <h4>"{q}"</h4>
+              <div className="interview-meta">
+                <span><span className="material-symbols-outlined">schedule</span>{i % 2 === 0 ? "10 min" : "5 min"}</span>
+                {i % 2 === 0 && <span><span className="material-symbols-outlined filled">star</span>High Frequency</span>}
+              </div>
+              <label>Answer Here</label>
+              <textarea value={practice === q ? answer : ""} onFocus={() => { setPractice(q); if (practice !== q) setAnswer(""); }} onChange={(e) => { setPractice(q); setAnswer(e.target.value); }} placeholder="Draft your response using the STAR (Situation, Task, Action, Result) method..." rows={practice === q ? 5 : 3} />
+              <div className="interview-card-actions">
+                <button>Save Draft</button>
+                <button onClick={() => setPractice(q)}>Submit for Review</button>
+              </div>
+              {practice === q && <p className={answer.length > 40 ? "good" : ""}>{answer.length > 40 ? "Good start. Add one measurable result to make it stronger." : "Write a structured answer to receive practice feedback."}</p>}
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="interview-tips">
+        <h2>Expert <span>Success Tips</span></h2>
+        <div>
+          <article className="large"><span className="material-symbols-outlined">record_voice_over</span><h3>Master Non-Verbal Cues</h3><p>Maintain eye contact, sit upright, and use open gestures to convey confidence during video interviews.</p><a>Read Full Guide <span className="material-symbols-outlined">open_in_new</span></a></article>
+          <article><span className="material-symbols-outlined">psychology</span><h3>Think Aloud</h3><p>For technical rounds, always articulate your thought process as you solve.</p></article>
+          <article><span className="material-symbols-outlined">timer</span><h3>Mock Often</h3><p>Schedule at least 2 mock interviews per week to reduce anxiety.</p></article>
+        </div>
+      </div>
     </section>
   );
 }
