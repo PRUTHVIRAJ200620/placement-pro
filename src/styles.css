@@ -1195,6 +1195,20 @@ textarea {
   backdrop-filter: blur(16px);
 }
 
+.coding-home-hero > div {
+  flex: 1;
+}
+
+.generate-code-btn {
+  border: 1px solid rgba(76, 215, 246, 0.4);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: #4cd7f6;
+  background: rgba(76, 215, 246, 0.08);
+  cursor: pointer;
+  font-weight: 800;
+}
+
 .coding-home-hero > .material-symbols-outlined {
   width: 64px;
   height: 64px;
@@ -1705,6 +1719,12 @@ textarea {
   background: linear-gradient(90deg, #4cd7f6, #d0bcff);
   cursor: pointer;
   font-weight: 900;
+}
+
+.aptitude-start-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .aptitude-result-card {
@@ -3260,27 +3280,40 @@ textarea {
   gap: 10px;
 }
 
-.saved-results-table > div {
+.saved-result-entry {
+  display: grid;
+  gap: 8px;
+}
+
+.saved-results-table > div,
+.saved-result-entry > button {
   display: grid;
   grid-template-columns: 110px 90px minmax(0, 1fr) 190px;
   gap: 12px;
   align-items: center;
   padding: 12px 14px;
+  border: 0;
   border-radius: 12px;
+  color: inherit;
   background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  text-align: left;
 }
 
-.saved-results-table span {
+.saved-results-table span,
+.saved-result-entry > button span {
   color: #4cd7f6;
   font-weight: 900;
   text-transform: capitalize;
 }
 
-.saved-results-table strong {
+.saved-results-table strong,
+.saved-result-entry > button strong {
   color: #f8fbff;
 }
 
-.saved-results-table p {
+.saved-results-table p,
+.saved-result-entry > button p {
   margin: 0;
   overflow: hidden;
   color: #c6c6cd;
@@ -3288,9 +3321,37 @@ textarea {
   white-space: nowrap;
 }
 
-.saved-results-table small {
+.saved-results-table small,
+.saved-result-entry > button small {
   color: #798098;
   text-align: right;
+}
+
+.result-detail-panel {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(76, 215, 246, 0.18);
+  border-radius: 12px;
+  background: rgba(1, 15, 31, 0.7);
+}
+
+.result-detail-panel b {
+  color: #f8fbff;
+}
+
+.result-detail-panel p {
+  margin: 0;
+  color: #c6c6cd;
+}
+
+.result-detail-panel pre {
+  overflow: auto;
+  margin: 0;
+  padding: 12px;
+  border-radius: 10px;
+  color: #d4e4fa;
+  background: #010f1f;
 }
 
 .leader-card > div:first-child {

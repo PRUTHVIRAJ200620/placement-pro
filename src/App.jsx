@@ -50,6 +50,26 @@ const CODING_PROBLEMS = [
   { id: 3, title: "Check Palindrome", difficulty: "Medium", desc: "Check if a given string is a palindrome.", example: 'Input: "racecar"\nOutput: True', starterPython: "def is_palindrome(s):\n    # Write your code here\n    pass\n\nprint(is_palindrome('racecar'))" },
 ];
 
+const EXTRA_APTITUDE = [
+  { q: "If 15 workers finish a job in 12 days, how many days will 10 workers take?", opts: ["15", "18", "20", "24"], ans: 1, cat: "Quantitative" },
+  { q: "Find the next number: 4, 7, 13, 25, 49, __", opts: ["88", "91", "97", "99"], ans: 2, cat: "Logical" },
+  { q: "Choose the antonym of 'CONCISE'.", opts: ["Brief", "Lengthy", "Clear", "Exact"], ans: 1, cat: "Verbal" },
+  { q: "A number increased by 20% becomes 240. What is the number?", opts: ["180", "190", "200", "220"], ans: 2, cat: "Quantitative" },
+  { q: "Odd one out: Apple, Mango, Carrot, Banana", opts: ["Apple", "Mango", "Carrot", "Banana"], ans: 2, cat: "Logical" },
+  { q: "Meaning of 'DILIGENT'.", opts: ["Lazy", "Careful", "Careless", "Late"], ans: 1, cat: "Verbal" },
+];
+
+const EXTRA_CODING = [
+  { title: "Sum of Array", difficulty: "Easy", desc: "Return the sum of all numbers in an array.", example: "Input: [1,2,3]\nOutput: 6", starterPython: "def array_sum(nums):\n    pass\n\nprint(array_sum([1,2,3]))" },
+  { title: "Count Vowels", difficulty: "Easy", desc: "Count vowels in a given string.", example: 'Input: "placement"\nOutput: 3', starterPython: "def count_vowels(s):\n    pass\n\nprint(count_vowels('placement'))" },
+  { title: "Find Maximum", difficulty: "Easy", desc: "Find the maximum number in a list.", example: "Input: [4,8,2]\nOutput: 8", starterPython: "def find_max(nums):\n    pass\n\nprint(find_max([4,8,2]))" },
+  { title: "Remove Duplicates", difficulty: "Medium", desc: "Return unique values from a list while preserving order.", example: "Input: [1,2,1,3]\nOutput: [1,2,3]", starterPython: "def unique_values(nums):\n    pass\n\nprint(unique_values([1,2,1,3]))" },
+];
+
+function shuffled(items) {
+  return [...items].sort(() => Math.random() - 0.5);
+}
+
 const AI_SUGGESTIONS = [
   { icon: "AI", title: "AI Mock Interviewer", desc: "Practice HR and technical interviews with instant feedback on structure, confidence, and missing points.", module: "Interview Prep", impact: "High" },
   { icon: "AQ", title: "Adaptive Question Engine", desc: "Adjust aptitude difficulty based on student performance in each category.", module: "Aptitude Tests", impact: "High" },
@@ -94,6 +114,23 @@ function saveLocalResult(result) {
 
 function loadLocalResults() {
   return JSON.parse(localStorage.getItem("placeprep_results") || "[]");
+}
+
+function loadLocalUsers() {
+  return JSON.parse(localStorage.getItem("placeprep_registered_users") || "{}");
+}
+
+function saveLocalUser(form) {
+  const users = loadLocalUsers();
+  const email = form.email.toLowerCase();
+  users[email] = {
+    name: form.name || email.split("@")[0],
+    email,
+    password: form.password,
+    role: form.role,
+  };
+  localStorage.setItem("placeprep_registered_users", JSON.stringify(users));
+  return users[email];
 }
 
 const NAV_STUDENT = [
@@ -322,12 +359,25 @@ function AuthScreen({ onLogin, initialMode = "login" }) {
       const payload = mode === "register" ? form : { email: form.email, password: form.password };
       const data = await apiFetch(path, { method: "POST", body: JSON.stringify(payload) });
       const user = { ...data.user, token: data.access_token };
+      if (mode === "register") saveLocalUser(form);
       localStorage.setItem("placeprep_user", JSON.stringify(user));
       onLogin(user);
     } catch {
-      const user = { name: form.name || form.email.split("@")[0], email: form.email, role: form.role, token: btoa(JSON.stringify({ email: form.email, role: form.role, iat: Date.now() })) };
-      localStorage.setItem("placeprep_user", JSON.stringify(user));
-      onLogin(user);
+      if (mode === "register") {
+        const registered = saveLocalUser(form);
+        const user = { name: registered.name, email: registered.email, role: registered.role, token: btoa(JSON.stringify({ email: registered.email, role: registered.role, iat: Date.now() })) };
+        localStorage.setItem("placeprep_user", JSON.stringify(user));
+        onLogin(user);
+      } else {
+        const registered = loadLocalUsers()[form.email.toLowerCase()];
+        if (!registered || registered.password !== form.password) {
+          setError("Invalid login details. Please register first or check your email/password.");
+          return;
+        }
+        const user = { name: registered.name, email: registered.email, role: registered.role, token: btoa(JSON.stringify({ email: registered.email, role: registered.role, iat: Date.now() })) };
+        localStorage.setItem("placeprep_user", JSON.stringify(user));
+        onLogin(user);
+      }
     } finally {
       setLoading(false);
     }
@@ -534,9 +584,11 @@ function AptitudeModule() {
   const [marked, setMarked] = useState({});
   const [timeLeft, setTimeLeft] = useState(300);
   const [category, setCategory] = useState("All");
+  const [questionBank, setQuestionBank] = useState(MOCK_APTITUDE);
+  const [generating, setGenerating] = useState(false);
   const timerRef = useRef(null);
   const resultSavedRef = useRef(false);
-  const filtered = category === "All" ? MOCK_APTITUDE : MOCK_APTITUDE.filter((q) => q.cat === category);
+  const filtered = category === "All" ? questionBank : questionBank.filter((q) => q.cat === category);
   const score = Object.entries(answers).filter(([idx, ans]) => filtered[+idx]?.ans === ans).length;
 
   useEffect(() => {
@@ -557,12 +609,28 @@ function AptitudeModule() {
   useEffect(() => {
     if (phase !== "result" || resultSavedRef.current) return;
     resultSavedRef.current = true;
-    saveLocalResult({ module: "aptitude", score, total: filtered.length, details: { category } });
+    saveLocalResult({ module: "aptitude", score, total: filtered.length, details: { category, answers, questions: filtered } });
     apiFetch("/results", {
       method: "POST",
-      body: JSON.stringify({ module: "aptitude", score, total: filtered.length, details: { category } }),
+      body: JSON.stringify({ module: "aptitude", score, total: filtered.length, details: { category, answers, questions: filtered } }),
     }).catch(() => {});
   }, [phase, score, filtered.length, category]);
+
+  const generateAptitude = async () => {
+    setGenerating(true);
+    try {
+      const data = await apiFetch("/ai/questions", { method: "POST", body: JSON.stringify({ kind: "aptitude", category, count: 5 }) });
+      const items = (data.items || []).map((item, index) => ({ ...item, id: Date.now() + index }));
+      setQuestionBank(items.length > 1 ? items : shuffled([...MOCK_APTITUDE, ...EXTRA_APTITUDE]).slice(0, 5).map((item, index) => ({ ...item, id: Date.now() + index })));
+    } catch {
+      setQuestionBank(shuffled([...MOCK_APTITUDE, ...EXTRA_APTITUDE]).slice(0, 5).map((item, index) => ({ ...item, id: Date.now() + index })));
+    } finally {
+      setCurrent(0);
+      setAnswers({});
+      setMarked({});
+      setGenerating(false);
+    }
+  };
 
   if (phase === "intro") return (
     <section className="aptitude-intro">
@@ -581,7 +649,10 @@ function AptitudeModule() {
         <div className="aptitude-config-stats">
           {[["Questions", filtered.length], ["Time Limit", "5 min"], ["Marking", "+1 / 0"]].map(([k, v]) => <div key={k}><strong>{v}</strong><span>{k}</span></div>)}
         </div>
-        <button className="aptitude-start" onClick={() => { setAnswers({}); setMarked({}); resultSavedRef.current = false; setCurrent(0); setTimeLeft(300); setPhase("test"); }}>Start Test</button>
+        <div className="aptitude-start-row">
+          <button className="aptitude-start" onClick={generateAptitude}>{generating ? "Generating..." : "Generate Fresh Questions"}</button>
+          <button className="aptitude-start" onClick={() => { setAnswers({}); setMarked({}); resultSavedRef.current = false; setCurrent(0); setTimeLeft(300); setPhase("test"); }}>Start Test</button>
+        </div>
       </div>
     </section>
   );
@@ -681,13 +752,29 @@ function AptitudeModule() {
   );
 }
 function CodingModule() {
+  const [problemBank, setProblemBank] = useState(CODING_PROBLEMS);
   const [selected, setSelected] = useState(null);
   const [lang, setLang] = useState("Python");
   const [code, setCode] = useState("");
   const [output, setOutput] = useState("");
   const [running, setRunning] = useState(false);
   const [reviewing, setReviewing] = useState(false);
+  const [generatingProblems, setGeneratingProblems] = useState(false);
   const [solvedProblems, setSolvedProblems] = useState(() => JSON.parse(localStorage.getItem("placeprep_solved_coding") || "[]"));
+
+  const generateCodingProblems = async () => {
+    setGeneratingProblems(true);
+    try {
+      const data = await apiFetch("/ai/questions", { method: "POST", body: JSON.stringify({ kind: "coding", count: 3 }) });
+      const items = (data.items || []).map((item, index) => ({ ...item, id: Date.now() + index, starterJava: item.starterJava, starterC: item.starterC }));
+      setProblemBank(items.length > 1 ? items : shuffled([...CODING_PROBLEMS, ...EXTRA_CODING]).slice(0, 3).map((item, index) => ({ ...item, id: Date.now() + index })));
+    } catch {
+      setProblemBank(shuffled([...CODING_PROBLEMS, ...EXTRA_CODING]).slice(0, 3).map((item, index) => ({ ...item, id: Date.now() + index })));
+    } finally {
+      setSelected(null);
+      setGeneratingProblems(false);
+    }
+  };
 
   if (!selected) return (
     <section className="coding-home">
@@ -697,9 +784,10 @@ function CodingModule() {
           <h2>Coding Test Module</h2>
           <p>Solve programming challenges in C, Java, or Python with an interview-style editor.</p>
         </div>
+        <button className="generate-code-btn" onClick={generateCodingProblems}>{generatingProblems ? "Generating..." : "Generate Fresh Problems"}</button>
       </div>
       <div className="coding-problem-list">
-        {CODING_PROBLEMS.map((p) => (
+        {problemBank.map((p) => (
           <button key={p.id} onClick={() => { setSelected(p); setLang("Python"); setCode(p.starterPython); setOutput(""); }} className="coding-problem-card">
             <span className="material-symbols-outlined">terminal</span>
             <div>
@@ -744,14 +832,14 @@ function CodingModule() {
     setOutput("Running final test cases...");
     setTimeout(() => {
       const score = codingScore();
-      const result = { module: "coding", score, total: 3, details: { problemId: selected.id, title: selected.title, language: lang } };
+      const result = { module: "coding", score, total: 3, details: { problemId: selected.id, title: selected.title, language: lang, code, problem: selected.desc, example: selected.example } };
       saveLocalResult(result);
       apiFetch("/results", { method: "POST", body: JSON.stringify(result) }).catch(() => {});
       const nextSolved = Array.from(new Set([...solvedProblems, selected.id]));
       setSolvedProblems(nextSolved);
       localStorage.setItem("placeprep_solved_coding", JSON.stringify(nextSolved));
-      const index = CODING_PROBLEMS.findIndex((problem) => problem.id === selected.id);
-      const nextProblem = CODING_PROBLEMS[index + 1];
+      const index = problemBank.findIndex((problem) => problem.id === selected.id);
+      const nextProblem = problemBank[index + 1];
       setRunning(false);
       if (nextProblem) {
         setOutput(`Submitted. Test cases passed: ${score}/3\nMoving to next problem...`);
@@ -1135,6 +1223,7 @@ function ResumeSection({ title, children }) {
 
 function ProgressModule() {
   const [results, setResults] = useState(() => loadLocalResults());
+  const [expandedResult, setExpandedResult] = useState(null);
   const weak = [
     { topic: "Dynamic Programming", score: 42 },
     { topic: "Probability and Stats", score: 48 },
@@ -1225,14 +1314,20 @@ function ProgressModule() {
       <section className="saved-results-card">
         <div><h3>Saved Test Results</h3><p>Aptitude and coding submissions saved from your practice sessions.</p></div>
         <div className="saved-results-table">
-          {(results.length ? results.slice(-8).reverse() : [{ module: "demo", score: 0, total: 0, date: new Date().toISOString(), details: { title: "No saved results yet" } }]).map((item, index) => (
-            <div key={`${item.module}-${item.date}-${index}`}>
-              <span>{item.module}</span>
-              <strong>{item.total ? `${item.score}/${item.total}` : "--"}</strong>
-              <p>{item.details?.title || item.details?.category || "Practice result"}</p>
-              <small>{new Date(item.date).toLocaleString()}</small>
-            </div>
-          ))}
+          {(results.length ? results.slice(-8).reverse() : [{ module: "demo", score: 0, total: 0, date: new Date().toISOString(), details: { title: "No saved results yet" } }]).map((item, index) => {
+            const rowKey = `${item.module}-${item.date}-${index}`;
+            return (
+              <section key={rowKey} className="saved-result-entry">
+                <button onClick={() => setExpandedResult(expandedResult === rowKey ? null : rowKey)}>
+                  <span>{item.module}</span>
+                  <strong>{item.total ? `${item.score}/${item.total}` : "--"}</strong>
+                  <p>{item.details?.title || item.details?.category || "Practice result"}</p>
+                  <small>{new Date(item.date).toLocaleString()}</small>
+                </button>
+                {expandedResult === rowKey && <ResultDetails item={item} />}
+              </section>
+            );
+          })}
         </div>
       </section>
 
@@ -1244,6 +1339,35 @@ function ProgressModule() {
       </section>
     </section>
   );
+}
+
+function ResultDetails({ item }) {
+  if (item.module === "aptitude" && item.details?.questions) {
+    return (
+      <div className="result-detail-panel">
+        {item.details.questions.map((q, index) => {
+          const chosen = item.details.answers?.[index];
+          return (
+            <div key={`${q.q}-${index}`}>
+              <b>Q{index + 1}. {q.q}</b>
+              <p>Your answer: {chosen !== undefined ? q.opts[chosen] : "Not answered"}</p>
+              <p>Correct answer: {q.opts[q.ans]}</p>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+  if (item.module === "coding") {
+    return (
+      <div className="result-detail-panel">
+        <b>{item.details?.title}</b>
+        <p>{item.details?.problem}</p>
+        <pre>{item.details?.code}</pre>
+      </div>
+    );
+  }
+  return <div className="result-detail-panel"><p>No answer details available yet.</p></div>;
 }
 
 function ResultRing({ value, label, tone }) {

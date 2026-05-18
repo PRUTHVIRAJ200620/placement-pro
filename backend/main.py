@@ -99,6 +99,12 @@ class ResumeReviewIn(BaseModel):
     resume: ResumeIn
 
 
+class QuestionGenerateIn(BaseModel):
+    kind: str = "aptitude"
+    category: str = "All"
+    count: int = 5
+
+
 def create_access_token(data: dict) -> str:
     payload = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -264,3 +270,29 @@ async def resume_review(payload: ResumeReviewIn, current_user: Annotated[UserOut
     fallback = fallback_feedback("resume", str(resume))
     prompt = f"Review this student placement resume. Give concise ATS, keyword, and project-impact feedback:\n{resume}"
     return {"feedback": await ai_text(prompt, fallback)}
+
+
+@app.post("/ai/questions")
+async def ai_questions(payload: QuestionGenerateIn, current_user: Annotated[UserOut, Depends(get_current_user)]):
+    if payload.kind == "coding":
+        fallback = {
+            "items": [
+                {
+                    "title": "Sum of Array",
+                    "difficulty": "Easy",
+                    "desc": "Write a function that returns the sum of all numbers in an array.",
+                    "example": "Input: [1,2,3]\nOutput: 6",
+                    "starterPython": "def array_sum(nums):\n    pass\n\nprint(array_sum([1,2,3]))",
+                }
+            ]
+        }
+        prompt = "Generate 3 beginner placement coding problems as JSON items with title,difficulty,desc,example,starterPython."
+    else:
+        fallback = {
+            "items": [
+                {"q": "A train covers 120 km in 2 hours. What is its speed?", "opts": ["40", "50", "60", "70"], "ans": 2, "cat": "Quantitative"}
+            ]
+        }
+        prompt = f"Generate {payload.count} {payload.category} aptitude MCQs as JSON items with q, opts array of 4, ans index, cat."
+    text = await ai_text(prompt, "")
+    return {"raw": text, **fallback}
