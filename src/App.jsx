@@ -977,9 +977,93 @@ function ResumeSection({ title, children }) {
 }
 
 function ProgressModule() {
-  const weak = ["Probability and Statistics", "Time and Work", "Reading Comprehension"];
-  const history = [{ date: "May 15", module: "Aptitude", score: 70 }, { date: "May 16", module: "Coding", score: 60 }, { date: "May 17", module: "Aptitude", score: 80 }, { date: "May 18", module: "Interview", score: 85 }];
-  return <section><h2 style={{ color: COLORS.text }}>Progress Tracker</h2><div className="grid-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: "1.5rem" }}>{Object.entries(PROGRESS_DATA).map(([key, val]) => <Card key={key}><ProgressRow name={key} value={val} /></Card>)}</div><div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}><Card><h4 style={{ color: COLORS.text, marginTop: 0 }}>Weak Areas</h4>{weak.map((item) => <p key={item} style={{ color: COLORS.textMuted }}>{item} <Badge color="danger">Needs Work</Badge></p>)}</Card><Card><h4 style={{ color: COLORS.text, marginTop: 0 }}>Test History</h4>{history.map((item) => <div key={`${item.date}-${item.module}`} style={{ display: "flex", justifyContent: "space-between", borderBottom: `1px solid ${COLORS.border}`, padding: "8px 0" }}><span style={{ color: COLORS.text }}>{item.module}<br /><small style={{ color: COLORS.textMuted }}>{item.date}</small></span><strong style={{ color: item.score >= 75 ? COLORS.success : COLORS.warning }}>{item.score}%</strong></div>)}</Card></div></section>;
+  const weak = [
+    { topic: "Dynamic Programming", score: 42 },
+    { topic: "Probability and Stats", score: 48 },
+    { topic: "System Design", score: 51 },
+  ];
+  const leaderboard = [
+    { rank: 1, name: "Jordan Davis", points: 3912, initials: "JD" },
+    { rank: 2, name: "Sarah Miller", points: 3780, initials: "SM" },
+    { rank: 3, name: "Rohan Kapoor", points: 3650, initials: "RK" },
+  ];
+  const actions = [
+    { icon: "menu_book", title: "Review DP Basics", desc: "Your recursion score is strong, but DP remains a bottleneck. Start with memoization.", tone: "cyan", cta: "Start Lesson" },
+    { icon: "timer", title: "Mock Interview", desc: "Schedule a 1:1 session focusing on system design to boost interview readiness.", tone: "purple", cta: "Book Now" },
+    { icon: "groups", title: "Group Challenge", desc: "Join the weekly batch challenge and earn premium interview prep credits.", tone: "plain", cta: "Join Challenge" },
+  ];
+
+  return (
+    <section className="results-page">
+      <header className="results-header">
+        <div>
+          <h2>Results & Performance</h2>
+          <p>Real-time analysis of your career readiness journey.</p>
+        </div>
+        <div>
+          <button onClick={() => window.print()}><span className="material-symbols-outlined">download</span>Export PDF</button>
+          <button>Retake Assessment</button>
+        </div>
+      </header>
+
+      <div className="results-grid">
+        <section className="results-main">
+          <div className="score-card">
+            <h3>Aptitude Mastery</h3>
+            <ResultRing value={85} label="Percentile" tone="cyan" />
+            <div><span>Prev: 78%</span><strong>+7% Improvement</strong></div>
+          </div>
+          <div className="score-card">
+            <h3>Coding Proficiency</h3>
+            <ResultRing value={72} label="Expertise Level" tone="purple" />
+            <div><span>Solved: 142/200</span><strong className="purple">Gold Rank</strong></div>
+          </div>
+          <div className="momentum-card">
+            <div className="momentum-head">
+              <div><h3>Score Momentum</h3><p>Historical performance across last 6 assessments</p></div>
+              <div><span className="cyan" />Aptitude <span className="purple" />Coding</div>
+            </div>
+            <div className="line-chart">
+              <svg viewBox="0 0 640 240" preserveAspectRatio="none">
+                <path d="M0,150 L105,130 L210,145 L315,100 L420,110 L525,80 L640,60" />
+                <path className="purple" d="M0,200 L105,210 L210,180 L315,190 L420,150 L525,140 L640,120" />
+              </svg>
+              <div>{["Jan", "Feb", "Mar", "Apr", "May", "Jun"].map((m) => <span key={m}>{m}</span>)}</div>
+            </div>
+          </div>
+        </section>
+
+        <aside className="results-side">
+          <div className="weak-card">
+            <h3><span className="material-symbols-outlined">warning</span>Weak Areas</h3>
+            {weak.map((item) => <div key={item.topic} className="weak-item"><div><b>{item.topic}</b><strong>{item.score}%</strong></div><i><span style={{ width: `${item.score}%` }} /></i></div>)}
+            <button>Unlock Practice Modules</button>
+          </div>
+          <div className="leader-card">
+            <div><h3>Batch Ranking</h3><span>Top 12%</span></div>
+            <div className="user-rank"><strong>#42</strong><span>P</span><p><b>Pruthvi Raj (You)</b><small>2,840 Points</small></p></div>
+            {leaderboard.map((item) => <div key={item.rank} className="rank-row"><strong>#{item.rank}</strong><span>{item.initials}</span><p><b>{item.name}</b><small>{item.points.toLocaleString()} Points</small></p>{item.rank === 1 && <span className="material-symbols-outlined medal">military_tech</span>}</div>)}
+            <button>View Full Leaderboard</button>
+          </div>
+        </aside>
+      </div>
+
+      <section className="action-plan">
+        <h3>Personalized Action Plan</h3>
+        <div>
+          {actions.map((item) => <article key={item.title} className={item.tone}><span className="material-symbols-outlined">{item.icon}</span><h4>{item.title}</h4><p>{item.desc}</p><a>{item.cta} <span className="material-symbols-outlined">arrow_forward</span></a></article>)}
+        </div>
+      </section>
+    </section>
+  );
+}
+
+function ResultRing({ value, label, tone }) {
+  return (
+    <div className={`result-ring ${tone}`} style={{ "--value": value }}>
+      <div><strong>{value}%</strong><span>{label}</span></div>
+    </div>
+  );
 }
 
 function AIFeatures() {
