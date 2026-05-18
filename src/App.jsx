@@ -848,9 +848,68 @@ function InterviewModule() {
 
 function ResumeModule() {
   const [form, setForm] = useState({ name: "Rahul Sharma", email: "rahul@college.edu", phone: "9876543210", college: "JNTU Hyderabad", degree: "B.Tech CSE", cgpa: "8.4", skills: "Python, Java, React, SQL, Git", projects: "1. Placement Portal - React and Python web app\n2. Library Management System - Java and MySQL", internship: "Software Intern at TCS (June-Aug 2024)", achievements: "Winner, HackFest 2024\nTop 5%, Dept. Merit List", summary: "Aspiring Software Engineer with a passion for building scalable web applications and mastering complex algorithms.", portfolio: "linkedin.com/in/rahulsharma" });
+  const [activeStep, setActiveStep] = useState("Personal");
+  const [saved, setSaved] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const previewRef = useRef(null);
   const setValue = (key, value) => setForm({ ...form, [key]: value });
   const [firstName, ...lastNameParts] = form.name.split(" ");
   const lastName = lastNameParts.join(" ");
+  const steps = ["Personal", "Education", "Experience", "Skills"];
+
+  const saveDraft = () => {
+    localStorage.setItem("placeprep_resume", JSON.stringify(form));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1600);
+  };
+
+  const goNext = () => {
+    const index = steps.indexOf(activeStep);
+    if (index === steps.length - 1) {
+      previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    setActiveStep(steps[Math.min(index + 1, steps.length - 1)]);
+  };
+
+  const renderFields = () => {
+    if (activeStep === "Education") {
+      return (
+        <>
+          <label><span>College</span><input value={form.college} onChange={(e) => setValue("college", e.target.value)} /></label>
+          <label><span>Degree</span><input value={form.degree} onChange={(e) => setValue("degree", e.target.value)} /></label>
+          <label><span>CGPA</span><input value={form.cgpa} onChange={(e) => setValue("cgpa", e.target.value)} /></label>
+          <label className="wide"><span>Achievements</span><textarea value={form.achievements} onChange={(e) => setValue("achievements", e.target.value)} rows={4} /></label>
+        </>
+      );
+    }
+    if (activeStep === "Experience") {
+      return (
+        <>
+          <label className="wide"><span>Internship / Experience</span><textarea value={form.internship} onChange={(e) => setValue("internship", e.target.value)} rows={4} /></label>
+          <label className="wide"><span>Projects</span><textarea value={form.projects} onChange={(e) => setValue("projects", e.target.value)} rows={5} /></label>
+        </>
+      );
+    }
+    if (activeStep === "Skills") {
+      return (
+        <>
+          <label className="wide"><span>Technical Skills</span><textarea value={form.skills} onChange={(e) => setValue("skills", e.target.value)} rows={4} /></label>
+          <label className="wide"><span>Professional Summary</span><textarea value={form.summary} onChange={(e) => setValue("summary", e.target.value)} rows={4} /></label>
+        </>
+      );
+    }
+    return (
+      <>
+        <label><span>First Name</span><input value={firstName || ""} onChange={(e) => setValue("name", `${e.target.value} ${lastName}`.trim())} /></label>
+        <label><span>Last Name</span><input value={lastName} onChange={(e) => setValue("name", `${firstName || ""} ${e.target.value}`.trim())} /></label>
+        <label className="wide"><span>Professional Summary</span><textarea value={form.summary} onChange={(e) => setValue("summary", e.target.value)} rows={4} /></label>
+        <label><span>Email Address</span><input value={form.email} onChange={(e) => setValue("email", e.target.value)} /></label>
+        <label><span>Phone Number</span><input value={form.phone} onChange={(e) => setValue("phone", e.target.value)} /></label>
+        <label className="wide"><span>LinkedIn / Portfolio URL</span><input value={form.portfolio} onChange={(e) => setValue("portfolio", e.target.value)} /></label>
+      </>
+    );
+  };
 
   return (
     <section className="resume-architect">
@@ -860,47 +919,39 @@ function ResumeModule() {
           <p>AI-Enhanced Career Builder</p>
         </div>
         <div>
-          <button>Save Draft</button>
-          <button><span className="material-symbols-outlined">picture_as_pdf</span>Generate PDF</button>
+          <button onClick={saveDraft}>{saved ? "Draft Saved" : "Save Draft"}</button>
+          <button onClick={() => previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}><span className="material-symbols-outlined">visibility</span>Review</button>
+          <button onClick={() => window.print()}><span className="material-symbols-outlined">picture_as_pdf</span>Generate PDF</button>
         </div>
       </header>
 
       <div className="resume-builder-grid">
         <div className="resume-form-side">
           <div className="resume-stepper">
-            {["Personal", "Education", "Experience", "Skills"].map((step, index) => (
-              <div key={step} className={index === 0 ? "active" : ""}>
+            {steps.map((step, index) => (
+              <button key={step} className={activeStep === step ? "active" : ""} onClick={() => setActiveStep(step)}>
                 <span>{index + 1}</span>
                 <small>{step}</small>
-              </div>
+              </button>
             ))}
           </div>
 
           <div className="resume-form-card">
-            <div className="resume-form-title"><span className="material-symbols-outlined">person</span><h2>Personal Information</h2></div>
+            <div className="resume-form-title"><span className="material-symbols-outlined">{activeStep === "Personal" ? "person" : activeStep === "Education" ? "school" : activeStep === "Experience" ? "work" : "psychology"}</span><h2>{activeStep} Details</h2></div>
             <div className="resume-fields">
-              <label><span>First Name</span><input value={firstName || ""} onChange={(e) => setValue("name", `${e.target.value} ${lastName}`.trim())} /></label>
-              <label><span>Last Name</span><input value={lastName} onChange={(e) => setValue("name", `${firstName || ""} ${e.target.value}`.trim())} /></label>
-              <label className="wide"><span>Professional Summary</span><textarea value={form.summary} onChange={(e) => setValue("summary", e.target.value)} rows={4} /></label>
-              <label><span>Email Address</span><input value={form.email} onChange={(e) => setValue("email", e.target.value)} /></label>
-              <label><span>Phone Number</span><input value={form.phone} onChange={(e) => setValue("phone", e.target.value)} /></label>
-              <label className="wide"><span>LinkedIn / Portfolio URL</span><input value={form.portfolio} onChange={(e) => setValue("portfolio", e.target.value)} /></label>
-              <label><span>College</span><input value={form.college} onChange={(e) => setValue("college", e.target.value)} /></label>
-              <label><span>Degree</span><input value={form.degree} onChange={(e) => setValue("degree", e.target.value)} /></label>
-              <label className="wide"><span>Technical Skills</span><textarea value={form.skills} onChange={(e) => setValue("skills", e.target.value)} rows={2} /></label>
-              <label className="wide"><span>Projects</span><textarea value={form.projects} onChange={(e) => setValue("projects", e.target.value)} rows={3} /></label>
+              {renderFields()}
             </div>
-            <div className="resume-form-actions"><button>Save & Next</button></div>
+            <div className="resume-form-actions"><button onClick={goNext}>{activeStep === "Skills" ? "Review Resume" : "Save & Next"}</button></div>
           </div>
 
           <div className="resume-collapsed-list">
-            {["Education", "Experience"].map((item) => <div key={item}><span className="material-symbols-outlined">{item === "Education" ? "school" : "work"}</span><strong>{item}</strong><span className="material-symbols-outlined">add_circle</span></div>)}
+            {steps.filter((item) => item !== activeStep).map((item) => <button key={item} onClick={() => setActiveStep(item)}><span className="material-symbols-outlined">{item === "Education" ? "school" : item === "Experience" ? "work" : item === "Skills" ? "psychology" : "person"}</span><strong>{item}</strong><span className="material-symbols-outlined">add_circle</span></button>)}
           </div>
         </div>
 
         <div className="resume-preview-side">
-          <div className="resume-preview-tools"><span>Live Preview</span><div><button><span className="material-symbols-outlined">zoom_in</span></button><button><span className="material-symbols-outlined">zoom_out</span></button></div></div>
-          <div className="resume-paper">
+          <div className="resume-preview-tools"><span>Live Preview</span><div><button onClick={() => setZoom(Math.min(1.15, zoom + 0.05))}><span className="material-symbols-outlined">zoom_in</span></button><button onClick={() => setZoom(Math.max(0.85, zoom - 0.05))}><span className="material-symbols-outlined">zoom_out</span></button></div></div>
+          <div className="resume-paper" ref={previewRef} style={{ transform: `scale(${zoom})`, transformOrigin: "top center" }}>
             <i />
             <header>
               <h1>{form.name.toUpperCase()}</h1>

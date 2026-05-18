@@ -2584,7 +2584,8 @@ textarea {
   font-weight: 800;
 }
 
-.resume-architect-header button:first-child {
+.resume-architect-header button:first-child,
+.resume-architect-header button:nth-child(2) {
   border: 1px solid #4cd7f6;
   color: #4cd7f6;
   background: transparent;
@@ -2633,10 +2634,13 @@ textarea {
   padding: 18px;
 }
 
-.resume-stepper div {
+.resume-stepper button {
   display: grid;
   justify-items: center;
   gap: 8px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
 }
 
 .resume-stepper span {
@@ -2740,16 +2744,23 @@ textarea {
   gap: 14px;
 }
 
-.resume-collapsed-list div {
+.resume-collapsed-list button {
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-radius: 18px;
   padding: 20px;
   opacity: 0.65;
+  color: inherit;
+  cursor: pointer;
 }
 
-.resume-collapsed-list div span:first-child {
+.resume-collapsed-list button:hover {
+  opacity: 1;
+  border-color: rgba(76, 215, 246, 0.35);
+}
+
+.resume-collapsed-list button span:first-child {
   color: #c6c6cd;
 }
 
@@ -2904,6 +2915,27 @@ textarea {
 .resume-ai-note span {
   color: #03b5d3;
   font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .resume-paper,
+  .resume-paper * {
+    visibility: visible;
+  }
+
+  .resume-paper {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    min-height: auto;
+    margin: 0;
+    box-shadow: none;
+    transform: none !important;
+  }
 }
 
 button:focus-visible,
