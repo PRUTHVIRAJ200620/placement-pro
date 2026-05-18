@@ -1,0 +1,567 @@
+import { useEffect, useRef, useState } from "react";
+
+const COLORS = {
+  primary: "#0F172A",
+  accent: "#6366F1",
+  accent2: "#22D3EE",
+  success: "#10B981",
+  warning: "#F59E0B",
+  danger: "#EF4444",
+  surface: "#1E293B",
+  surfaceLight: "#334155",
+  text: "#F8FAFC",
+  textMuted: "#94A3B8",
+  border: "#334155",
+};
+
+const MOCK_APTITUDE = [
+  { id: 1, q: "If a train travels 60 km in 45 minutes, what is its speed in km/h?", opts: ["70", "80", "75", "90"], ans: 1, cat: "Quantitative" },
+  { id: 2, q: "Find the odd one out: 2, 5, 10, 17, 26, 37, 50, 64", opts: ["50", "64", "26", "37"], ans: 1, cat: "Logical" },
+  { id: 3, q: "Choose the word most similar in meaning to 'EPHEMERAL':", opts: ["Eternal", "Transient", "Vivid", "Robust"], ans: 1, cat: "Verbal" },
+  { id: 4, q: "A shopkeeper sells goods at 25% profit. If cost price is Rs.800, what is the selling price?", opts: ["Rs.900", "Rs.950", "Rs.1000", "Rs.1050"], ans: 2, cat: "Quantitative" },
+  { id: 5, q: "In a series: 3, 9, 27, 81, __ what comes next?", opts: ["162", "243", "324", "216"], ans: 1, cat: "Logical" },
+];
+
+const MOCK_INTERVIEW = {
+  HR: [
+    "Tell me about yourself.",
+    "What are your greatest strengths and weaknesses?",
+    "Where do you see yourself in 5 years?",
+    "Why do you want to work for our company?",
+    "Describe a challenge you faced and how you overcame it.",
+  ],
+  Technical: [
+    "Explain the difference between process and thread.",
+    "What is polymorphism in OOP?",
+    "Explain normalization in databases.",
+    "What is the time complexity of binary search?",
+    "What is the difference between TCP and UDP?",
+  ],
+  "Company-wise": {
+    TCS: ["What is cloud computing?", "Explain Agile methodology.", "Difference between = and == in Python."],
+    Infosys: ["What is SDLC?", "Explain recursion with an example.", "What is a foreign key?"],
+    Wipro: ["What is Big Data?", "Explain MVC architecture.", "What is an API?"],
+  },
+};
+
+const CODING_PROBLEMS = [
+  { id: 1, title: "Reverse a String", difficulty: "Easy", desc: "Write a function that reverses a given string.", example: 'Input: "hello"\nOutput: "olleh"', starterPython: '# Write your code here\ndef reverse_string(s):\n    pass\n\nprint(reverse_string("hello"))', starterJava: "public class Main {\n  public static void main(String[] args) {\n    // Write your code here\n  }\n}", starterC: "#include <stdio.h>\nint main(){\n  // Write your code here\n  return 0;\n}" },
+  { id: 2, title: "Find Factorial", difficulty: "Easy", desc: "Write a function to find the factorial of a given number.", example: "Input: 5\nOutput: 120", starterPython: "def factorial(n):\n    # Write your code here\n    pass\n\nprint(factorial(5))" },
+  { id: 3, title: "Check Palindrome", difficulty: "Medium", desc: "Check if a given string is a palindrome.", example: 'Input: "racecar"\nOutput: True', starterPython: "def is_palindrome(s):\n    # Write your code here\n    pass\n\nprint(is_palindrome('racecar'))" },
+];
+
+const AI_SUGGESTIONS = [
+  { icon: "AI", title: "AI Mock Interviewer", desc: "Practice HR and technical interviews with instant feedback on structure, confidence, and missing points.", module: "Interview Prep", impact: "High" },
+  { icon: "AQ", title: "Adaptive Question Engine", desc: "Adjust aptitude difficulty based on student performance in each category.", module: "Aptitude Tests", impact: "High" },
+  { icon: "CR", title: "AI Code Reviewer", desc: "Review logic, time complexity, readability, and edge cases beyond pass/fail output.", module: "Coding Tests", impact: "High" },
+  { icon: "RA", title: "AI Resume Analyzer", desc: "Score resumes for ATS compatibility, grammar, keyword gaps, and weak project descriptions.", module: "Resume Builder", impact: "Medium" },
+  { icon: "WP", title: "Weak Area Predictor", desc: "Analyze test history to predict topics the student should practice next.", module: "Progress Tracker", impact: "High" },
+  { icon: "SC", title: "AI Study Chatbot", desc: "Answer doubts, explain concepts, and generate custom practice questions on demand.", module: "All Modules", impact: "Medium" },
+];
+
+const PROGRESS_DATA = {
+  aptitude: { completed: 12, total: 20, score: 74 },
+  coding: { completed: 5, total: 15, score: 60 },
+  interview: { completed: 8, total: 12, score: 82 },
+  resume: { completed: 1, total: 1, score: 90 },
+};
+
+const NAV_STUDENT = [
+  { id: "dashboard", label: "Dashboard", icon: "Home" },
+  { id: "aptitude", label: "Aptitude Tests", icon: "Quiz" },
+  { id: "coding", label: "Coding Tests", icon: "Code" },
+  { id: "interview", label: "Interview Prep", icon: "Talk" },
+  { id: "resume", label: "Resume Builder", icon: "CV" },
+  { id: "progress", label: "Progress Tracker", icon: "Stats" },
+  { id: "ai", label: "AI Features", icon: "AI" },
+];
+
+const NAV_ADMIN = [
+  { id: "admin-dashboard", label: "Admin Dashboard", icon: "Admin" },
+  { id: "admin-questions", label: "Manage Questions", icon: "Q" },
+  { id: "admin-users", label: "Manage Users", icon: "Users" },
+  { id: "admin-reports", label: "Reports", icon: "Rpt" },
+];
+
+const Badge = ({ children, color = "accent" }) => {
+  const colors = {
+    accent: { bg: "#312E81", text: "#A5B4FC" },
+    success: { bg: "#064E3B", text: "#6EE7B7" },
+    warning: { bg: "#78350F", text: "#FCD34D" },
+    danger: { bg: "#7F1D1D", text: "#FCA5A5" },
+  };
+  const c = colors[color] || colors.accent;
+  return <span style={{ background: c.bg, color: c.text, fontSize: 11, padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>{children}</span>;
+};
+
+const ProgressBar = ({ value, color = COLORS.accent, height = 6 }) => (
+  <div style={{ background: COLORS.border, borderRadius: 99, height, overflow: "hidden" }}>
+    <div style={{ width: `${value}%`, height: "100%", background: color, borderRadius: 99, transition: "width 0.8s ease" }} />
+  </div>
+);
+
+const Card = ({ children, style = {}, onClick }) => (
+  <div
+    onClick={onClick}
+    style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "1.25rem 1.5rem", cursor: onClick ? "pointer" : "default", transition: "border-color 0.2s, transform 0.2s", ...style }}
+    onMouseEnter={(e) => { if (onClick) { e.currentTarget.style.borderColor = COLORS.accent; e.currentTarget.style.transform = "translateY(-2px)"; } }}
+    onMouseLeave={(e) => { if (onClick) { e.currentTarget.style.borderColor = COLORS.border; e.currentTarget.style.transform = "translateY(0)"; } }}
+  >
+    {children}
+  </div>
+);
+
+const Button = ({ children, onClick, variant = "primary", size = "md", disabled = false, style = {}, type = "button" }) => {
+  const sizes = { sm: { padding: "6px 14px", fontSize: 13 }, md: { padding: "10px 22px", fontSize: 14 }, lg: { padding: "14px 32px", fontSize: 16 } };
+  const variants = {
+    primary: { background: COLORS.accent, color: "#fff" },
+    secondary: { background: COLORS.surfaceLight, color: COLORS.text },
+    outline: { background: "transparent", color: COLORS.accent, border: `1px solid ${COLORS.accent}` },
+    success: { background: COLORS.success, color: "#fff" },
+    danger: { background: COLORS.danger, color: "#fff" },
+  };
+  return <button type={type} disabled={disabled} onClick={onClick} style={{ border: "none", borderRadius: 8, fontWeight: 700, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.55 : 1, ...sizes[size], ...variants[variant], ...style }}>{children}</button>;
+};
+
+const Field = ({ label, children }) => (
+  <label style={{ display: "block", marginBottom: "0.85rem" }}>
+    <span style={{ fontSize: 13, color: COLORS.textMuted, display: "block", marginBottom: 6 }}>{label}</span>
+    {children}
+  </label>
+);
+
+const inputStyle = { width: "100%", padding: "10px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: COLORS.primary, color: COLORS.text, fontSize: 14, outline: "none" };
+
+function AuthScreen({ onLogin }) {
+  const [mode, setMode] = useState("login");
+  const [form, setForm] = useState({ name: "", email: "", password: "", role: "student" });
+  const [error, setError] = useState("");
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    if (!form.email || !form.password) return setError("Please fill all required fields.");
+    if (mode === "register" && !form.name) return setError("Name is required.");
+    const user = { name: form.name || form.email.split("@")[0], email: form.email, role: form.role, token: btoa(JSON.stringify({ email: form.email, role: form.role, iat: Date.now() })) };
+    localStorage.setItem("placeprep_user", JSON.stringify(user));
+    onLogin(user);
+  };
+
+  return (
+    <main style={{ minHeight: "100vh", background: COLORS.primary, display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
+      <div style={{ width: "100%", maxWidth: 420 }}>
+        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+          <div style={{ width: 56, height: 56, background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.accent2})`, borderRadius: 8, margin: "0 auto 1rem", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900 }}>PP</div>
+          <h1 style={{ color: COLORS.text, fontSize: 28, fontWeight: 900, margin: 0 }}>PlacePrep</h1>
+          <p style={{ color: COLORS.textMuted, fontSize: 14, marginTop: 4 }}>Campus placement preparation portal</p>
+        </div>
+        <Card>
+          <div style={{ display: "flex", gap: 4, background: COLORS.primary, borderRadius: 8, padding: 4, marginBottom: "1.5rem" }}>
+            {["login", "register"].map((item) => (
+              <button key={item} onClick={() => { setMode(item); setError(""); }} style={{ flex: 1, padding: "8px 0", borderRadius: 6, border: "none", fontWeight: 700, cursor: "pointer", background: mode === item ? COLORS.accent : "transparent", color: mode === item ? "#fff" : COLORS.textMuted }}>
+                {item === "login" ? "Sign In" : "Register"}
+              </button>
+            ))}
+          </div>
+          <form onSubmit={handleSubmit}>
+            {mode === "register" && <Field label="Full Name"><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Rahul Sharma" style={inputStyle} /></Field>}
+            <Field label="Email"><input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@college.edu" style={inputStyle} /></Field>
+            <Field label="Password"><input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="password" style={inputStyle} /></Field>
+            {mode === "register" && <Field label="Role"><select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} style={inputStyle}><option value="student">Student</option><option value="admin">Admin</option></select></Field>}
+            {error && <p style={{ color: COLORS.danger, fontSize: 13 }}>{error}</p>}
+            <Button type="submit" size="lg" style={{ width: "100%" }}>{mode === "login" ? "Sign In" : "Create Account"}</Button>
+          </form>
+          <p style={{ color: COLORS.textMuted, fontSize: 12, textAlign: "center", marginBottom: 0 }}>JWT authentication ready for backend connection</p>
+        </Card>
+      </div>
+    </main>
+  );
+}
+
+function Sidebar({ user, active, setActive, onLogout }) {
+  const nav = user.role === "admin" ? NAV_ADMIN : NAV_STUDENT;
+  return (
+    <aside className="sidebar" style={{ width: 240, background: COLORS.surface, borderRight: `1px solid ${COLORS.border}`, display: "flex", flexDirection: "column", height: "100vh", position: "fixed", top: 0, left: 0, zIndex: 100 }}>
+      <div style={{ padding: "1.5rem 1.25rem 1rem", borderBottom: `1px solid ${COLORS.border}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 36, height: 36, background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.accent2})`, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900 }}>PP</div>
+          <div><div style={{ color: COLORS.text, fontWeight: 900 }}>PlacePrep</div><div style={{ color: COLORS.textMuted, fontSize: 11 }}>Portal</div></div>
+        </div>
+      </div>
+      <nav style={{ flex: 1, padding: "0.75rem", overflowY: "auto" }}>
+        {nav.map((item) => (
+          <button key={item.id} onClick={() => setActive(item.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, border: "none", cursor: "pointer", marginBottom: 2, background: active === item.id ? `${COLORS.accent}22` : "transparent", color: active === item.id ? COLORS.accent : COLORS.textMuted, fontWeight: active === item.id ? 800 : 500, fontSize: 14, textAlign: "left" }}>
+            <span style={{ minWidth: 42, fontSize: 11, color: active === item.id ? COLORS.accent2 : COLORS.textMuted }}>{item.icon}</span>{item.label}
+          </button>
+        ))}
+      </nav>
+      <div style={{ padding: "1rem 0.75rem", borderTop: `1px solid ${COLORS.border}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+          <div style={{ width: 34, height: 34, background: COLORS.accent, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800 }}>{user.name[0].toUpperCase()}</div>
+          <div><div style={{ color: COLORS.text, fontSize: 13, fontWeight: 700 }}>{user.name}</div><div style={{ color: COLORS.textMuted, fontSize: 11 }}>{user.role}</div></div>
+        </div>
+        <Button onClick={onLogout} variant="secondary" size="sm" style={{ width: "100%" }}>Sign Out</Button>
+      </div>
+    </aside>
+  );
+}
+
+function Dashboard({ user, setActive }) {
+  const modules = [
+    { id: "aptitude", icon: "calculate", label: "Aptitude Master", desc: "Master logical reasoning, quantitative analysis, and verbal ability.", count: "42 Modules", done: "80% Done", width: "80%", tone: "cyan" },
+    { id: "coding", icon: "code", label: "Coding Arsenal", desc: "Practice data structures, algorithms, and company coding patterns.", count: "128 Challenges", done: "45% Done", width: "45%", tone: "purple" },
+    { id: "interview", icon: "record_voice_over", label: "Interview Simulator", desc: "Prepare with HR, technical, and AI-assisted mock interview rounds.", count: "15 Sessions", done: "12% Done", width: "12%", tone: "silver" },
+  ];
+  const activity = [
+    { day: "Mon", height: "40%", fill: "60%" },
+    { day: "Tue", height: "70%", fill: "85%" },
+    { day: "Wed", height: "55%", fill: "40%" },
+    { day: "Thu", height: "90%", fill: "95%" },
+    { day: "Fri", height: "65%", fill: "70%" },
+    { day: "Sat", height: "40%", fill: "50%" },
+    { day: "Sun", height: "30%", fill: "20%" },
+  ];
+  const tests = [
+    { date: "24", month: "May", title: "Tech Giant Mock Drive", desc: "System design and problem solving" },
+    { date: "28", month: "May", title: "HR Round Strategy", desc: "Behavioral workshop with mentors" },
+  ];
+
+  return (
+    <section className="pn-dashboard">
+      <div className="pn-topbar">
+        <span>Dashboard / Overview</span>
+        <div className="pn-top-actions">
+          <span className="material-symbols-outlined">notifications</span>
+          <span className="material-symbols-outlined">search</span>
+        </div>
+      </div>
+
+      <div className="pn-hero">
+        <div className="pn-hero-copy">
+          <h1>Welcome back, {user.name}!</h1>
+          <p>You're in the top 5% of your batch. Your dream placement is just 12 modules away. Keep the momentum going.</p>
+          <div className="pn-hero-actions">
+            <button onClick={() => setActive("coding")}>Resume Coding Practice</button>
+            <button onClick={() => setActive("progress")}>View Daily Roadmap</button>
+          </div>
+        </div>
+        <div className="pn-streak-card">
+          <p>Current Streak</p>
+          <strong>14</strong>
+          <span>Days of non-stop growth</span>
+          <div className="pn-spark">
+            {[4, 6, 8, 10, 12, 10, 8].map((h, index) => <i key={index} style={{ height: `${h * 4}px` }} />)}
+          </div>
+        </div>
+      </div>
+
+      <div className="pn-analytics-grid">
+        <div className="pn-glass-card pn-readiness">
+          <div className="pn-ring" style={{ "--score": 75 }}>
+            <div>
+              <strong>75%</strong>
+              <span>Course Readiness</span>
+            </div>
+          </div>
+          <h3>Readiness Score</h3>
+          <p>Your aptitude and coding scores are peaking this week.</p>
+        </div>
+
+        <div className="pn-glass-card pn-weekly">
+          <div className="pn-section-head">
+            <div>
+              <h3>Weekly Activity</h3>
+              <p>Problems solved per day</p>
+            </div>
+            <div className="pn-legend"><span />Practice <em />Mock Tests</div>
+          </div>
+          <div className="pn-bars">
+            {activity.map((item) => (
+              <div key={item.day} className="pn-bar-wrap">
+                <div className="pn-bar-track" style={{ height: item.height }}>
+                  <div style={{ height: item.fill }} />
+                </div>
+                <span>{item.day}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="pn-feature-grid">
+        {modules.map((m) => (
+          <button key={m.id} className={`pn-feature-card pn-${m.tone}`} onClick={() => setActive(m.id)}>
+            <span className="material-symbols-outlined">{m.icon}</span>
+            <h4>{m.label}</h4>
+            <p>{m.desc}</p>
+            <div><strong>{m.count}</strong><span>{m.done}</span></div>
+            <i><b style={{ width: m.width }} /></i>
+          </button>
+        ))}
+      </div>
+
+      <div className="pn-bento-grid">
+        <div className="pn-glass-card">
+          <h3>Upcoming Tests</h3>
+          <div className="pn-test-list">
+            {tests.map((test) => (
+              <div key={test.title} className="pn-test-item">
+                <div><strong>{test.date}</strong><span>{test.month}</span></div>
+                <section><h4>{test.title}</h4><p>{test.desc}</p></section>
+                <button>Remind me</button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="pn-glass-card">
+          <h3>Recent Badges</h3>
+          <div className="pn-badges">
+            {["auto_awesome", "terminal", "trophy", "military_tech"].map((icon, index) => (
+              <div key={icon} className={index === 3 ? "locked" : ""}><span className="material-symbols-outlined">{icon}</span></div>
+            ))}
+          </div>
+          <p className="pn-badge-copy">You've earned <strong>3 new badges</strong> this month. Complete the Red-Black Trees challenge to unlock the Coding Master badge.</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ProgressRow({ name, value }) {
+  const color = value.score >= 80 ? COLORS.success : value.score >= 60 ? COLORS.warning : COLORS.danger;
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+        <span style={{ color: COLORS.text, textTransform: "capitalize", fontWeight: 700 }}>{name}</span>
+        <span style={{ color: COLORS.textMuted }}>{value.completed}/{value.total} | {value.score}%</span>
+      </div>
+      <ProgressBar value={value.score} color={color} />
+    </div>
+  );
+}
+
+function AptitudeModule() {
+  const [phase, setPhase] = useState("intro");
+  const [current, setCurrent] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [timeLeft, setTimeLeft] = useState(300);
+  const [category, setCategory] = useState("All");
+  const timerRef = useRef(null);
+  const filtered = category === "All" ? MOCK_APTITUDE : MOCK_APTITUDE.filter((q) => q.cat === category);
+  const score = Object.entries(answers).filter(([idx, ans]) => filtered[+idx]?.ans === ans).length;
+
+  useEffect(() => {
+    if (phase !== "test") return undefined;
+    timerRef.current = setInterval(() => {
+      setTimeLeft((time) => {
+        if (time <= 1) {
+          clearInterval(timerRef.current);
+          setPhase("result");
+          return 0;
+        }
+        return time - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+  }, [phase]);
+
+  if (phase === "intro") return (
+    <section>
+      <h2 style={{ color: COLORS.text }}>Aptitude Test Module</h2>
+      <Card style={{ maxWidth: 680 }}>
+        <h3 style={{ color: COLORS.text, marginTop: 0 }}>Test Configuration</h3>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: "1.25rem" }}>
+          {["All", "Quantitative", "Logical", "Verbal"].map((cat) => <Button key={cat} onClick={() => setCategory(cat)} variant={category === cat ? "primary" : "secondary"} size="sm">{cat}</Button>)}
+        </div>
+        <div className="grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, background: COLORS.primary, borderRadius: 8, padding: "1rem", marginBottom: "1.5rem" }}>
+          {[["Questions", filtered.length], ["Time Limit", "5 min"], ["Marking", "+1 / 0"]].map(([k, v]) => <div key={k} style={{ textAlign: "center" }}><div style={{ color: COLORS.accent2, fontWeight: 900, fontSize: 20 }}>{v}</div><div style={{ color: COLORS.textMuted, fontSize: 12 }}>{k}</div></div>)}
+        </div>
+        <Button size="lg" onClick={() => { setAnswers({}); setCurrent(0); setTimeLeft(300); setPhase("test"); }}>Start Test</Button>
+      </Card>
+    </section>
+  );
+
+  if (phase === "result") {
+    const percent = Math.round((score / filtered.length) * 100);
+    return <section><h2 style={{ color: COLORS.text }}>Test Results</h2><Card style={{ maxWidth: 620, textAlign: "center" }}><div style={{ color: COLORS.text, fontSize: 48, fontWeight: 900 }}>{score}/{filtered.length}</div><p style={{ color: COLORS.textMuted }}>Score: {percent}%</p><ProgressBar value={percent} height={10} color={percent >= 80 ? COLORS.success : percent >= 60 ? COLORS.warning : COLORS.danger} /><Button onClick={() => setPhase("intro")} style={{ marginTop: 24 }}>Try Again</Button></Card></section>;
+  }
+
+  const q = filtered[current];
+  const mins = String(Math.floor(timeLeft / 60)).padStart(2, "0");
+  const secs = String(timeLeft % 60).padStart(2, "0");
+  return (
+    <section>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: "1.5rem" }}>
+        <h2 style={{ color: COLORS.text, margin: 0 }}>{category} Quiz</h2>
+        <div style={{ border: `1px solid ${timeLeft < 60 ? COLORS.danger : COLORS.border}`, borderRadius: 8, padding: "8px 16px", color: timeLeft < 60 ? COLORS.danger : COLORS.text, fontWeight: 900 }}>{mins}:{secs}</div>
+      </div>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: "1.5rem" }}>
+        {filtered.map((_, i) => <button key={i} onClick={() => setCurrent(i)} style={{ width: 30, height: 30, borderRadius: 6, border: "none", background: i === current ? COLORS.accent : answers[i] !== undefined ? COLORS.success : COLORS.border, color: "#fff", cursor: "pointer" }}>{i + 1}</button>)}
+      </div>
+      <Card style={{ maxWidth: 720 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}><Badge>{q.cat}</Badge><span style={{ color: COLORS.textMuted }}>Q{current + 1} of {filtered.length}</span></div>
+        <p style={{ color: COLORS.text, fontSize: 17, lineHeight: 1.6, fontWeight: 700 }}>{q.q}</p>
+        <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          {q.opts.map((opt, i) => <button key={opt} onClick={() => setAnswers({ ...answers, [current]: i })} style={{ padding: "12px 16px", borderRadius: 8, border: `2px solid ${answers[current] === i ? COLORS.accent : COLORS.border}`, background: answers[current] === i ? `${COLORS.accent}22` : COLORS.primary, color: answers[current] === i ? COLORS.accent2 : COLORS.text, cursor: "pointer", textAlign: "left" }}>{String.fromCharCode(65 + i)}. {opt}</button>)}
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1.5rem" }}>
+          <Button onClick={() => setCurrent(Math.max(0, current - 1))} variant="secondary" disabled={current === 0}>Previous</Button>
+          {current < filtered.length - 1 ? <Button onClick={() => setCurrent(current + 1)} disabled={answers[current] === undefined}>Next</Button> : <Button onClick={() => { clearInterval(timerRef.current); setPhase("result"); }} variant="success">Submit Test</Button>}
+        </div>
+      </Card>
+    </section>
+  );
+}
+
+function CodingModule() {
+  const [selected, setSelected] = useState(null);
+  const [lang, setLang] = useState("Python");
+  const [code, setCode] = useState("");
+  const [output, setOutput] = useState("");
+  const [running, setRunning] = useState(false);
+
+  if (!selected) return <section><h2 style={{ color: COLORS.text }}>Coding Test Module</h2><p style={{ color: COLORS.textMuted }}>Solve programming challenges in C, Java, or Python.</p><div style={{ display: "grid", gap: 12 }}>{CODING_PROBLEMS.map((p) => <Card key={p.id} onClick={() => { setSelected(p); setLang("Python"); setCode(p.starterPython); setOutput(""); }}><div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}><div><div style={{ color: COLORS.text, fontWeight: 800 }}>{p.title} <Badge color={p.difficulty === "Easy" ? "success" : "warning"}>{p.difficulty}</Badge></div><p style={{ color: COLORS.textMuted, marginBottom: 0 }}>{p.desc}</p></div><span style={{ color: COLORS.accent }}>Open</span></div></Card>)}</div></section>;
+
+  const updateLanguage = (nextLang) => {
+    setLang(nextLang);
+    setCode(nextLang === "Python" ? selected.starterPython : nextLang === "Java" ? selected.starterJava || "public class Main {\n  public static void main(String[] args) {\n  }\n}" : selected.starterC || "#include <stdio.h>\nint main(){\n  return 0;\n}");
+  };
+
+  const runCode = () => {
+    setRunning(true);
+    setOutput("Running...");
+    setTimeout(() => {
+      setRunning(false);
+      if (code.includes("pass")) setOutput("Function body is incomplete. Replace pass with your implementation.");
+      else if (selected.id === 1 && code.includes("[::-1]")) setOutput("Output: olleh\n\nAll test cases passed. (3/3)");
+      else if (selected.id === 2 && (code.includes("*") || code.includes("math"))) setOutput("Output: 120\n\nAll test cases passed. (3/3)");
+      else setOutput("Code submitted. Connect this module to a judge service for real execution.");
+    }, 800);
+  };
+
+  return (
+    <section>
+      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: "1.5rem" }}><Button onClick={() => setSelected(null)} variant="secondary" size="sm">Back</Button><h2 style={{ color: COLORS.text, margin: 0 }}>{selected.title}</h2><Badge color={selected.difficulty === "Easy" ? "success" : "warning"}>{selected.difficulty}</Badge></div>
+      <div className="coding-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 16, alignItems: "start" }}>
+        <Card><h4 style={{ color: COLORS.text, marginTop: 0 }}>Problem Statement</h4><p style={{ color: COLORS.textMuted, lineHeight: 1.7 }}>{selected.desc}</p><pre style={{ background: COLORS.primary, color: COLORS.text, borderRadius: 8, padding: "1rem", whiteSpace: "pre-wrap" }}>{selected.example}</pre></Card>
+        <div><div style={{ display: "flex", gap: 8, marginBottom: 12 }}>{["Python", "Java", "C"].map((item) => <Button key={item} onClick={() => updateLanguage(item)} variant={lang === item ? "primary" : "secondary"} size="sm">{item}</Button>)}</div><textarea value={code} onChange={(e) => setCode(e.target.value)} style={{ ...inputStyle, minHeight: 260, fontFamily: "Consolas, monospace", resize: "vertical", lineHeight: 1.55 }} spellCheck={false} /><Button onClick={runCode} disabled={running} style={{ marginTop: 8 }}>{running ? "Running..." : "Run Code"}</Button>{output && <pre style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, borderRadius: 8, padding: "1rem", whiteSpace: "pre-wrap" }}>{output}</pre>}</div>
+      </div>
+    </section>
+  );
+}
+
+function InterviewModule() {
+  const [tab, setTab] = useState("HR");
+  const [companyTab, setCompanyTab] = useState("TCS");
+  const [practice, setPractice] = useState(null);
+  const [answer, setAnswer] = useState("");
+  const questions = tab === "Company-wise" ? MOCK_INTERVIEW["Company-wise"][companyTab] : MOCK_INTERVIEW[tab];
+  return (
+    <section>
+      <h2 style={{ color: COLORS.text }}>Interview Preparation</h2>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: "1rem" }}>{["HR", "Technical", "Company-wise"].map((item) => <Button key={item} onClick={() => setTab(item)} variant={tab === item ? "primary" : "secondary"} size="sm">{item}</Button>)}</div>
+      {tab === "Company-wise" && <div style={{ display: "flex", gap: 8, marginBottom: "1rem" }}>{Object.keys(MOCK_INTERVIEW["Company-wise"]).map((item) => <Button key={item} onClick={() => setCompanyTab(item)} variant={companyTab === item ? "success" : "secondary"} size="sm">{item}</Button>)}</div>}
+      <div style={{ display: "grid", gap: 12 }}>{questions.map((q, i) => <Card key={q}><div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}><div style={{ color: COLORS.text, fontWeight: 700 }}>Q{i + 1}. {q}<p style={{ color: COLORS.textMuted, fontWeight: 400, fontSize: 13 }}>Tip: use the STAR method and include a real project or academic example.</p></div><Button onClick={() => { setPractice(practice === q ? null : q); setAnswer(""); }} variant="outline" size="sm">Practice</Button></div>{practice === q && <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 12 }}><textarea value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder="Type your answer here..." style={{ ...inputStyle, minHeight: 100, resize: "vertical" }} /><p style={{ color: answer.length > 40 ? COLORS.success : COLORS.textMuted, fontSize: 13 }}>{answer.length > 40 ? "Good start. Add one measurable result to make it stronger." : "Write a short structured answer to receive practice feedback."}</p></div>}</Card>)}</div>
+    </section>
+  );
+}
+
+function ResumeModule() {
+  const [form, setForm] = useState({ name: "Rahul Sharma", email: "rahul@college.edu", phone: "9876543210", college: "JNTU Hyderabad", degree: "B.Tech CSE", cgpa: "8.4", skills: "Python, Java, React, SQL, Git", projects: "1. Placement Portal - React and Python web app\n2. Library Management System - Java and MySQL", internship: "Software Intern at TCS (June-Aug 2024)", achievements: "Winner, HackFest 2024\nTop 5%, Dept. Merit List" });
+  const [preview, setPreview] = useState(true);
+  const setValue = (key, value) => setForm({ ...form, [key]: value });
+  return (
+    <section>
+      <h2 style={{ color: COLORS.text }}>Resume Builder</h2>
+      <div className="resume-grid" style={{ display: "grid", gridTemplateColumns: preview ? "1fr 1fr" : "1fr", gap: 20 }}>
+        <Card>
+          {["name", "email", "phone", "college", "degree", "cgpa"].map((key) => <Field key={key} label={key.toUpperCase()}><input value={form[key]} onChange={(e) => setValue(key, e.target.value)} style={inputStyle} /></Field>)}
+          {["skills", "projects", "internship", "achievements"].map((key) => <Field key={key} label={key.toUpperCase()}><textarea value={form[key]} onChange={(e) => setValue(key, e.target.value)} rows={key === "skills" ? 2 : 3} style={{ ...inputStyle, resize: "vertical" }} /></Field>)}
+          <Button onClick={() => setPreview(!preview)}>{preview ? "Hide Preview" : "Preview Resume"}</Button>
+        </Card>
+        {preview && <div style={{ background: "#fff", borderRadius: 8, padding: "2rem", color: "#111", minHeight: 680 }}><div style={{ borderBottom: "3px solid #6366F1", paddingBottom: "1rem", marginBottom: "1rem" }}><h2 style={{ margin: 0, color: "#1e1b4b" }}>{form.name}</h2><p style={{ margin: "4px 0 0", color: "#555", fontSize: 13 }}>{form.email} | {form.phone}</p></div><ResumeSection title="Education"><p><strong>{form.college}</strong> - {form.degree}</p><p>CGPA: {form.cgpa}</p></ResumeSection><ResumeSection title="Skills"><p>{form.skills}</p></ResumeSection><ResumeSection title="Projects">{form.projects.split("\n").map((p) => <p key={p}>{p}</p>)}</ResumeSection><ResumeSection title="Experience"><p>{form.internship}</p></ResumeSection><ResumeSection title="Achievements">{form.achievements.split("\n").map((a) => <p key={a}>{a}</p>)}</ResumeSection></div>}
+      </div>
+    </section>
+  );
+}
+
+function ResumeSection({ title, children }) {
+  return <section style={{ marginBottom: "1rem" }}><h4 style={{ color: "#6366F1", fontSize: 12, letterSpacing: "0.08em", borderBottom: "1px solid #e5e7eb", paddingBottom: 4 }}>{title.toUpperCase()}</h4>{children}</section>;
+}
+
+function ProgressModule() {
+  const weak = ["Probability and Statistics", "Time and Work", "Reading Comprehension"];
+  const history = [{ date: "May 15", module: "Aptitude", score: 70 }, { date: "May 16", module: "Coding", score: 60 }, { date: "May 17", module: "Aptitude", score: 80 }, { date: "May 18", module: "Interview", score: 85 }];
+  return <section><h2 style={{ color: COLORS.text }}>Progress Tracker</h2><div className="grid-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: "1.5rem" }}>{Object.entries(PROGRESS_DATA).map(([key, val]) => <Card key={key}><ProgressRow name={key} value={val} /></Card>)}</div><div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}><Card><h4 style={{ color: COLORS.text, marginTop: 0 }}>Weak Areas</h4>{weak.map((item) => <p key={item} style={{ color: COLORS.textMuted }}>{item} <Badge color="danger">Needs Work</Badge></p>)}</Card><Card><h4 style={{ color: COLORS.text, marginTop: 0 }}>Test History</h4>{history.map((item) => <div key={`${item.date}-${item.module}`} style={{ display: "flex", justifyContent: "space-between", borderBottom: `1px solid ${COLORS.border}`, padding: "8px 0" }}><span style={{ color: COLORS.text }}>{item.module}<br /><small style={{ color: COLORS.textMuted }}>{item.date}</small></span><strong style={{ color: item.score >= 75 ? COLORS.success : COLORS.warning }}>{item.score}%</strong></div>)}</Card></div></section>;
+}
+
+function AIFeatures() {
+  const [selected, setSelected] = useState(null);
+  return (
+    <section>
+      <h2 style={{ color: COLORS.text }}>AI Integration Suggestions</h2>
+      <Card style={{ background: `linear-gradient(135deg, ${COLORS.accent}22, #22D3EE22)`, marginBottom: "1.5rem" }}>
+        <p style={{ color: COLORS.text, margin: 0, lineHeight: 1.7 }}><strong style={{ color: COLORS.accent2 }}>Tech Stack:</strong> React frontend, Python FastAPI backend, PostgreSQL database, JWT authentication, OpenAI or Hugging Face for AI models.</p>
+      </Card>
+      <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+        {AI_SUGGESTIONS.map((item, i) => <Card key={item.title} onClick={() => setSelected(selected === i ? null : i)}><div style={{ display: "flex", gap: 12 }}><div style={{ width: 42, height: 42, borderRadius: 8, background: COLORS.primary, color: COLORS.accent2, display: "grid", placeItems: "center", fontWeight: 900 }}>{item.icon}</div><div><div style={{ color: COLORS.text, fontWeight: 900 }}>{item.title} <Badge color={item.impact === "High" ? "success" : "warning"}>{item.impact}</Badge></div><div style={{ color: COLORS.textMuted, fontSize: 12 }}>Module: {item.module}</div>{selected === i && <p style={{ color: COLORS.textMuted, lineHeight: 1.7 }}>{item.desc}</p>}</div></div></Card>)}
+      </div>
+    </section>
+  );
+}
+
+function AdminModule({ view }) {
+  const users = [
+    { name: "Priya K.", email: "priya@college.edu", tests: 18, avg: 78, joined: "Apr 20" },
+    { name: "Arjun M.", email: "arjun@college.edu", tests: 12, avg: 65, joined: "Apr 22" },
+    { name: "Sneha T.", email: "sneha@college.edu", tests: 25, avg: 88, joined: "Apr 18" },
+    { name: "Vikram R.", email: "vikram@college.edu", tests: 5, avg: 50, joined: "May 1" },
+  ];
+  if (view === "admin-questions") return <section><h2 style={{ color: COLORS.text }}>Manage Questions</h2><Card>{["Question Text", "Option A", "Option B", "Option C", "Option D", "Correct Option"].map((label) => <Field key={label} label={label}><input placeholder={label} style={inputStyle} /></Field>)}<Button>Add Question</Button></Card></section>;
+  if (view === "admin-users") return <section><h2 style={{ color: COLORS.text }}>Manage Users</h2><Card><div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr>{["Name", "Email", "Tests", "Avg Score", "Joined", "Action"].map((h) => <th key={h} style={{ color: COLORS.textMuted, textAlign: "left", padding: "8px", borderBottom: `1px solid ${COLORS.border}` }}>{h}</th>)}</tr></thead><tbody>{users.map((u) => <tr key={u.email}>{[u.name, u.email, u.tests, `${u.avg}%`, u.joined].map((v) => <td key={v} style={{ color: COLORS.text, padding: "10px 8px", borderBottom: `1px solid ${COLORS.border}` }}>{v}</td>)}<td style={{ padding: 8, borderBottom: `1px solid ${COLORS.border}` }}><Button variant="danger" size="sm">Remove</Button></td></tr>)}</tbody></table></div></Card></section>;
+  if (view === "admin-reports") return <section><h2 style={{ color: COLORS.text }}>Reports</h2><div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}><Card><h4 style={{ color: COLORS.text }}>Module Performance</h4>{Object.entries(PROGRESS_DATA).map(([key, val]) => <ProgressRow key={key} name={key} value={val} />)}</Card><Card><h4 style={{ color: COLORS.text }}>Top Performers</h4>{users.sort((a, b) => b.avg - a.avg).map((u, i) => <p key={u.email} style={{ color: COLORS.textMuted }}><strong style={{ color: COLORS.text }}>#{i + 1}</strong> {u.name} - {u.avg}%</p>)}</Card></div></section>;
+  return <section><h2 style={{ color: COLORS.text }}>Admin Dashboard</h2><div className="grid-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: "1.5rem" }}>{[["Total Students", 42], ["Questions Bank", 185], ["Tests Taken", 312], ["Avg Platform Score", "72%"]].map(([label, value]) => <Card key={label}><div style={{ color: COLORS.accent2, fontSize: 26, fontWeight: 900 }}>{value}</div><div style={{ color: COLORS.textMuted }}>{label}</div></Card>)}</div><Card><h4 style={{ color: COLORS.text }}>Recent Activity</h4>{users.map((u) => <div key={u.email} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${COLORS.border}` }}><span style={{ color: COLORS.text }}>{u.name}<br /><small style={{ color: COLORS.textMuted }}>{u.email}</small></span><strong style={{ color: u.avg >= 75 ? COLORS.success : COLORS.warning }}>{u.avg}%</strong></div>)}</Card></section>;
+}
+
+export default function App() {
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem("placeprep_user");
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [active, setActive] = useState(user?.role === "admin" ? "admin-dashboard" : "dashboard");
+
+  const handleLogin = (nextUser) => {
+    setUser(nextUser);
+    setActive(nextUser.role === "admin" ? "admin-dashboard" : "dashboard");
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("placeprep_user");
+    setUser(null);
+  };
+
+  if (!user) return <AuthScreen onLogin={handleLogin} />;
+
+  const renderContent = () => {
+    if (user.role === "admin") return <AdminModule view={active} />;
+    switch (active) {
+      case "dashboard": return <Dashboard user={user} setActive={setActive} />;
+      case "aptitude": return <AptitudeModule />;
+      case "coding": return <CodingModule />;
+      case "interview": return <InterviewModule />;
+      case "resume": return <ResumeModule />;
+      case "progress": return <ProgressModule />;
+      case "ai": return <AIFeatures />;
+      default: return <Dashboard user={user} setActive={setActive} />;
+    }
+  };
+
+  return (
+    <div className="app-shell" style={{ minHeight: "100vh", background: COLORS.primary, fontFamily: "Segoe UI, system-ui, sans-serif" }}>
+      <Sidebar user={user} active={active} setActive={setActive} onLogout={handleLogout} />
+      <main className="main-content" style={{ marginLeft: 240, padding: "2rem 2.5rem", minHeight: "100vh" }}>
+        {renderContent()}
+      </main>
+    </div>
+  );
+}
