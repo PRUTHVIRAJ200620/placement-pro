@@ -487,6 +487,7 @@ function AptitudeModule() {
   const [phase, setPhase] = useState("intro");
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
+  const [marked, setMarked] = useState({});
   const [timeLeft, setTimeLeft] = useState(300);
   const [category, setCategory] = useState("All");
   const timerRef = useRef(null);
@@ -509,53 +510,121 @@ function AptitudeModule() {
   }, [phase]);
 
   if (phase === "intro") return (
-    <section>
-      <h2 style={{ color: COLORS.text }}>Aptitude Test Module</h2>
-      <Card style={{ maxWidth: 680 }}>
-        <h3 style={{ color: COLORS.text, marginTop: 0 }}>Test Configuration</h3>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: "1.25rem" }}>
-          {["All", "Quantitative", "Logical", "Verbal"].map((cat) => <Button key={cat} onClick={() => setCategory(cat)} variant={category === cat ? "primary" : "secondary"} size="sm">{cat}</Button>)}
+    <section className="aptitude-intro">
+      <div className="aptitude-intro-hero">
+        <span className="material-symbols-outlined">calculate</span>
+        <div>
+          <h2>Aptitude Test Module</h2>
+          <p>Choose a category and begin a focused placement-style aptitude exam.</p>
         </div>
-        <div className="grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, background: COLORS.primary, borderRadius: 8, padding: "1rem", marginBottom: "1.5rem" }}>
-          {[["Questions", filtered.length], ["Time Limit", "5 min"], ["Marking", "+1 / 0"]].map(([k, v]) => <div key={k} style={{ textAlign: "center" }}><div style={{ color: COLORS.accent2, fontWeight: 900, fontSize: 20 }}>{v}</div><div style={{ color: COLORS.textMuted, fontSize: 12 }}>{k}</div></div>)}
+      </div>
+      <div className="aptitude-config-card">
+        <h3>Test Configuration</h3>
+        <div className="aptitude-category-row">
+          {["All", "Quantitative", "Logical", "Verbal"].map((cat) => <button key={cat} onClick={() => setCategory(cat)} className={category === cat ? "active" : ""}>{cat}</button>)}
         </div>
-        <Button size="lg" onClick={() => { setAnswers({}); setCurrent(0); setTimeLeft(300); setPhase("test"); }}>Start Test</Button>
-      </Card>
+        <div className="aptitude-config-stats">
+          {[["Questions", filtered.length], ["Time Limit", "5 min"], ["Marking", "+1 / 0"]].map(([k, v]) => <div key={k}><strong>{v}</strong><span>{k}</span></div>)}
+        </div>
+        <button className="aptitude-start" onClick={() => { setAnswers({}); setMarked({}); setCurrent(0); setTimeLeft(300); setPhase("test"); }}>Start Test</button>
+      </div>
     </section>
   );
 
   if (phase === "result") {
     const percent = Math.round((score / filtered.length) * 100);
-    return <section><h2 style={{ color: COLORS.text }}>Test Results</h2><Card style={{ maxWidth: 620, textAlign: "center" }}><div style={{ color: COLORS.text, fontSize: 48, fontWeight: 900 }}>{score}/{filtered.length}</div><p style={{ color: COLORS.textMuted }}>Score: {percent}%</p><ProgressBar value={percent} height={10} color={percent >= 80 ? COLORS.success : percent >= 60 ? COLORS.warning : COLORS.danger} /><Button onClick={() => setPhase("intro")} style={{ marginTop: 24 }}>Try Again</Button></Card></section>;
+    return <section className="aptitude-result"><div className="aptitude-result-card"><h2>Test Results</h2><strong>{score}/{filtered.length}</strong><p>Score: {percent}%</p><ProgressBar value={percent} height={10} color={percent >= 80 ? COLORS.success : percent >= 60 ? COLORS.warning : COLORS.danger} /><button onClick={() => setPhase("intro")}>Try Again</button></div></section>;
   }
 
   const q = filtered[current];
   const mins = String(Math.floor(timeLeft / 60)).padStart(2, "0");
   const secs = String(timeLeft % 60).padStart(2, "0");
+  const answeredCount = Object.keys(answers).length;
+  const progress = ((current + 1) / filtered.length) * 100;
+
   return (
-    <section>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: "1.5rem" }}>
-        <h2 style={{ color: COLORS.text, margin: 0 }}>{category} Quiz</h2>
-        <div style={{ border: `1px solid ${timeLeft < 60 ? COLORS.danger : COLORS.border}`, borderRadius: 8, padding: "8px 16px", color: timeLeft < 60 ? COLORS.danger : COLORS.text, fontWeight: 900 }}>{mins}:{secs}</div>
-      </div>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: "1.5rem" }}>
-        {filtered.map((_, i) => <button key={i} onClick={() => setCurrent(i)} style={{ width: 30, height: 30, borderRadius: 6, border: "none", background: i === current ? COLORS.accent : answers[i] !== undefined ? COLORS.success : COLORS.border, color: "#fff", cursor: "pointer" }}>{i + 1}</button>)}
-      </div>
-      <Card style={{ maxWidth: 720 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}><Badge>{q.cat}</Badge><span style={{ color: COLORS.textMuted }}>Q{current + 1} of {filtered.length}</span></div>
-        <p style={{ color: COLORS.text, fontSize: 17, lineHeight: 1.6, fontWeight: 700 }}>{q.q}</p>
-        <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          {q.opts.map((opt, i) => <button key={opt} onClick={() => setAnswers({ ...answers, [current]: i })} style={{ padding: "12px 16px", borderRadius: 8, border: `2px solid ${answers[current] === i ? COLORS.accent : COLORS.border}`, background: answers[current] === i ? `${COLORS.accent}22` : COLORS.primary, color: answers[current] === i ? COLORS.accent2 : COLORS.text, cursor: "pointer", textAlign: "left" }}>{String.fromCharCode(65 + i)}. {opt}</button>)}
+    <section className="aptitude-exam">
+      <header className="aptitude-exam-topbar">
+        <div>
+          <strong>PrepNexus</strong>
+          <i />
+          <span className={timeLeft < 60 ? "danger" : ""}><span className="material-symbols-outlined">timer</span>{mins}:{secs}</span>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1.5rem" }}>
-          <Button onClick={() => setCurrent(Math.max(0, current - 1))} variant="secondary" disabled={current === 0}>Previous</Button>
-          {current < filtered.length - 1 ? <Button onClick={() => setCurrent(current + 1)} disabled={answers[current] === undefined}>Next</Button> : <Button onClick={() => { clearInterval(timerRef.current); setPhase("result"); }} variant="success">Submit Test</Button>}
-        </div>
-      </Card>
+        <div className="aptitude-profile"><div><b>Student</b><small>Batch of 2024</small></div><span>P</span></div>
+      </header>
+
+      <main className="aptitude-exam-body">
+        <section className="aptitude-question-area custom-scrollbar">
+          <div className="aptitude-question-wrap">
+            <div className="aptitude-progress-head">
+              <div>
+                <span>Aptitude Module</span>
+                <h1>{category === "All" ? q.cat : category} Reasoning</h1>
+              </div>
+              <p>Question <strong>{current + 1}</strong> of {filtered.length}</p>
+            </div>
+            <div className="aptitude-progress-track"><div style={{ width: `${progress}%` }} /></div>
+
+            <div className="aptitude-question-card">
+              <p>{q.q}</p>
+              <div className="aptitude-option-grid">
+                {q.opts.map((opt, i) => {
+                  const selectedAnswer = answers[current] === i;
+                  return (
+                    <button key={opt} onClick={() => setAnswers({ ...answers, [current]: i })} className={selectedAnswer ? "selected" : ""}>
+                      <span>{String.fromCharCode(65 + i)}</span>
+                      <b>{opt}</b>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="aptitude-actions">
+              <div>
+                <button onClick={() => setMarked({ ...marked, [current]: !marked[current] })} className={marked[current] ? "marked" : ""}><span className="material-symbols-outlined">flag</span>Mark for Review</button>
+                <button onClick={() => { const next = { ...answers }; delete next[current]; setAnswers(next); }}>Clear Response</button>
+              </div>
+              <div>
+                <button onClick={() => setCurrent(Math.max(0, current - 1))} disabled={current === 0}>Previous</button>
+                {current < filtered.length - 1
+                  ? <button onClick={() => setCurrent(current + 1)}>Save & Next</button>
+                  : <button onClick={() => { clearInterval(timerRef.current); setPhase("result"); }}>Submit Test</button>}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside className="aptitude-palette">
+          <div>
+            <h3>Question Palette</h3>
+            <div className="aptitude-palette-grid">
+              {filtered.map((_, i) => {
+                const state = i === current ? "current" : marked[i] ? "review" : answers[i] !== undefined ? "answered" : "unanswered";
+                return <button key={i} className={state} onClick={() => setCurrent(i)}>{i + 1}</button>;
+              })}
+            </div>
+          </div>
+          <div className="aptitude-legend">
+            <h4>Legend</h4>
+            <p><i className="answered" />Answered</p>
+            <p><i className="unanswered" />Not Answered</p>
+            <p><i className="review" />Marked for Review</p>
+            <p><i className="current" />Current</p>
+          </div>
+          <div className="aptitude-palette-footer">
+            <p>{answeredCount}/{filtered.length} answered</p>
+            <button onClick={() => { clearInterval(timerRef.current); setPhase("result"); }}>Finish Test</button>
+          </div>
+        </aside>
+      </main>
+      <footer className="aptitude-exam-footer">
+        <span>© 2024 PrepNexus Elite Education. All rights reserved.</span>
+        <div><a>Help Center</a><a>Guidelines</a></div>
+      </footer>
     </section>
   );
 }
-
 function CodingModule() {
   const [selected, setSelected] = useState(null);
   const [lang, setLang] = useState("Python");
