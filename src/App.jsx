@@ -563,7 +563,30 @@ function CodingModule() {
   const [output, setOutput] = useState("");
   const [running, setRunning] = useState(false);
 
-  if (!selected) return <section><h2 style={{ color: COLORS.text }}>Coding Test Module</h2><p style={{ color: COLORS.textMuted }}>Solve programming challenges in C, Java, or Python.</p><div style={{ display: "grid", gap: 12 }}>{CODING_PROBLEMS.map((p) => <Card key={p.id} onClick={() => { setSelected(p); setLang("Python"); setCode(p.starterPython); setOutput(""); }}><div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}><div><div style={{ color: COLORS.text, fontWeight: 800 }}>{p.title} <Badge color={p.difficulty === "Easy" ? "success" : "warning"}>{p.difficulty}</Badge></div><p style={{ color: COLORS.textMuted, marginBottom: 0 }}>{p.desc}</p></div><span style={{ color: COLORS.accent }}>Open</span></div></Card>)}</div></section>;
+  if (!selected) return (
+    <section className="coding-home">
+      <div className="coding-home-hero">
+        <span className="material-symbols-outlined">code</span>
+        <div>
+          <h2>Coding Test Module</h2>
+          <p>Solve programming challenges in C, Java, or Python with an interview-style editor.</p>
+        </div>
+      </div>
+      <div className="coding-problem-list">
+        {CODING_PROBLEMS.map((p) => (
+          <button key={p.id} onClick={() => { setSelected(p); setLang("Python"); setCode(p.starterPython); setOutput(""); }} className="coding-problem-card">
+            <span className="material-symbols-outlined">terminal</span>
+            <div>
+              <h3>{p.title}</h3>
+              <p>{p.desc}</p>
+            </div>
+            <Badge color={p.difficulty === "Easy" ? "success" : "warning"}>{p.difficulty}</Badge>
+            <strong>Open</strong>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
 
   const updateLanguage = (nextLang) => {
     setLang(nextLang);
@@ -583,11 +606,82 @@ function CodingModule() {
   };
 
   return (
-    <section>
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: "1.5rem" }}><Button onClick={() => setSelected(null)} variant="secondary" size="sm">Back</Button><h2 style={{ color: COLORS.text, margin: 0 }}>{selected.title}</h2><Badge color={selected.difficulty === "Easy" ? "success" : "warning"}>{selected.difficulty}</Badge></div>
-      <div className="coding-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 16, alignItems: "start" }}>
-        <Card><h4 style={{ color: COLORS.text, marginTop: 0 }}>Problem Statement</h4><p style={{ color: COLORS.textMuted, lineHeight: 1.7 }}>{selected.desc}</p><pre style={{ background: COLORS.primary, color: COLORS.text, borderRadius: 8, padding: "1rem", whiteSpace: "pre-wrap" }}>{selected.example}</pre></Card>
-        <div><div style={{ display: "flex", gap: 8, marginBottom: 12 }}>{["Python", "Java", "C"].map((item) => <Button key={item} onClick={() => updateLanguage(item)} variant={lang === item ? "primary" : "secondary"} size="sm">{item}</Button>)}</div><textarea value={code} onChange={(e) => setCode(e.target.value)} style={{ ...inputStyle, minHeight: 260, fontFamily: "Consolas, monospace", resize: "vertical", lineHeight: 1.55 }} spellCheck={false} /><Button onClick={runCode} disabled={running} style={{ marginTop: 8 }}>{running ? "Running..." : "Run Code"}</Button>{output && <pre style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, borderRadius: 8, padding: "1rem", whiteSpace: "pre-wrap" }}>{output}</pre>}</div>
+    <section className="code-workspace">
+      <header className="code-topbar">
+        <div>
+          <button onClick={() => setSelected(null)} aria-label="Back to coding problems"><span className="material-symbols-outlined">arrow_back</span></button>
+          <h2>{selected.title}</h2>
+        </div>
+        <div>
+          <span className="code-timer"><span className="material-symbols-outlined">timer</span>24:45</span>
+          <span className="code-avatar">P</span>
+        </div>
+      </header>
+
+      <div className="code-split">
+        <aside className="problem-pane custom-scrollbar">
+          <div className="problem-tags">
+            <Badge color={selected.difficulty === "Easy" ? "success" : "warning"}>{selected.difficulty}</Badge>
+            <span>45% Success Rate</span>
+          </div>
+          <p className="problem-lead">{selected.desc}</p>
+          <p className="problem-muted">Use the starter code, choose your language, run the sample, and submit when your logic is ready.</p>
+
+          <section>
+            <h3>Example</h3>
+            <pre>{selected.example}</pre>
+          </section>
+
+          <section>
+            <h3>Constraints</h3>
+            <ul>
+              <li>Input size stays within beginner-friendly limits.</li>
+              <li>Handle empty strings, small numbers, and edge cases.</li>
+              <li>Return the expected output format exactly.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>AI Review Tip</h3>
+            <p className="problem-muted">After execution, use the output panel to compare logic and improve readability, complexity, and edge-case handling.</p>
+          </section>
+        </aside>
+
+        <div className="editor-pane">
+          <div className="editor-toolbar">
+            <select value={lang} onChange={(e) => updateLanguage(e.target.value)}>
+              <option>Python</option>
+              <option>Java</option>
+              <option>C</option>
+            </select>
+            <div>
+              <button onClick={() => navigator.clipboard?.writeText(code)}><span className="material-symbols-outlined">content_copy</span>Copy</button>
+              <button onClick={() => updateLanguage(lang)}><span className="material-symbols-outlined">restart_alt</span>Reset</button>
+            </div>
+          </div>
+
+          <div className="editor-shell">
+            <div className="line-numbers">
+              {Array.from({ length: Math.max(15, code.split("\n").length) }, (_, i) => <span key={i}>{i + 1}</span>)}
+            </div>
+            <textarea value={code} onChange={(e) => setCode(e.target.value)} spellCheck={false} />
+          </div>
+
+          {output && (
+            <div className="console-panel">
+              <span><span className="material-symbols-outlined">terminal</span> Console</span>
+              <pre>{output}</pre>
+            </div>
+          )}
+
+          <footer className="editor-footer">
+            <button className="console-toggle"><span className="material-symbols-outlined">terminal</span>Console</button>
+            <div>
+              <button onClick={runCode} disabled={running}>{running ? "Running..." : "Run Code"}</button>
+              <button onClick={runCode} disabled={running}>Submit</button>
+            </div>
+          </footer>
+        </div>
       </div>
     </section>
   );
