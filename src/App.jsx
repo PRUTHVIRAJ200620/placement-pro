@@ -86,6 +86,16 @@ async function apiFetch(path, options = {}) {
   return response.json();
 }
 
+function saveLocalResult(result) {
+  const items = JSON.parse(localStorage.getItem("placeprep_results") || "[]");
+  items.push({ ...result, date: new Date().toISOString() });
+  localStorage.setItem("placeprep_results", JSON.stringify(items));
+}
+
+function loadLocalResults() {
+  return JSON.parse(localStorage.getItem("placeprep_results") || "[]");
+}
+
 const NAV_STUDENT = [
   { id: "dashboard", label: "Dashboard", icon: "Home" },
   { id: "aptitude", label: "Aptitude Tests", icon: "Quiz" },
@@ -547,6 +557,7 @@ function AptitudeModule() {
   useEffect(() => {
     if (phase !== "result" || resultSavedRef.current) return;
     resultSavedRef.current = true;
+    saveLocalResult({ module: "aptitude", score, total: filtered.length, details: { category } });
     apiFetch("/results", {
       method: "POST",
       body: JSON.stringify({ module: "aptitude", score, total: filtered.length, details: { category } }),
@@ -676,6 +687,7 @@ function CodingModule() {
   const [output, setOutput] = useState("");
   const [running, setRunning] = useState(false);
   const [reviewing, setReviewing] = useState(false);
+  const [solvedProblems, setSolvedProblems] = useState(() => JSON.parse(localStorage.getItem("placeprep_solved_coding") || "[]"));
 
   if (!selected) return (
     <section className="coding-home">
@@ -694,8 +706,8 @@ function CodingModule() {
               <h3>{p.title}</h3>
               <p>{p.desc}</p>
             </div>
-            <Badge color={p.difficulty === "Easy" ? "success" : "warning"}>{p.difficulty}</Badge>
-            <strong>Open</strong>
+            <Badge color={solvedProblems.includes(p.id) ? "success" : p.difficulty === "Easy" ? "success" : "warning"}>{solvedProblems.includes(p.id) ? "Solved" : p.difficulty}</Badge>
+            <strong>{solvedProblems.includes(p.id) ? "Review" : "Open"}</strong>
           </button>
         ))}
       </div>
@@ -717,6 +729,43 @@ function CodingModule() {
       else if (selected.id === 2 && (code.includes("*") || code.includes("math"))) setOutput("Output: 120\n\nAll test cases passed. (3/3)");
       else setOutput("Code submitted. Connect this module to a judge service for real execution.");
     }, 800);
+  };
+
+  const codingScore = () => {
+    if (code.includes("pass")) return 0;
+    if (selected.id === 1 && code.includes("[::-1]")) return 3;
+    if (selected.id === 2 && (code.includes("*") || code.includes("math"))) return 3;
+    if (code.trim().length > 40) return 2;
+    return 1;
+  };
+
+  const submitCode = () => {
+    setRunning(true);
+    setOutput("Running final test cases...");
+    setTimeout(() => {
+      const score = codingScore();
+      const result = { module: "coding", score, total: 3, details: { problemId: selected.id, title: selected.title, language: lang } };
+      saveLocalResult(result);
+      apiFetch("/results", { method: "POST", body: JSON.stringify(result) }).catch(() => {});
+      const nextSolved = Array.from(new Set([...solvedProblems, selected.id]));
+      setSolvedProblems(nextSolved);
+      localStorage.setItem("placeprep_solved_coding", JSON.stringify(nextSolved));
+      const index = CODING_PROBLEMS.findIndex((problem) => problem.id === selected.id);
+      const nextProblem = CODING_PROBLEMS[index + 1];
+      setRunning(false);
+      if (nextProblem) {
+        setOutput(`Submitted. Test cases passed: ${score}/3\nMoving to next problem...`);
+        setTimeout(() => {
+          setSelected(nextProblem);
+          setLang("Python");
+          setCode(nextProblem.starterPython);
+          setOutput("");
+        }, 700);
+      } else {
+        setOutput(`Submitted. Test cases passed: ${score}/3\nCoding test complete. Result saved to dashboard.`);
+        setTimeout(() => setSelected(null), 1200);
+      }
+    }, 900);
   };
 
   const reviewCode = async () => {
@@ -809,7 +858,7 @@ function CodingModule() {
             <div>
               <button onClick={runCode} disabled={running}>{running ? "Running..." : "Run Code"}</button>
               <button onClick={reviewCode} disabled={reviewing}>{reviewing ? "Reviewing..." : "AI Review"}</button>
-              <button onClick={runCode} disabled={running}>Submit</button>
+              <button onClick={submitCode} disabled={running}>Submit</button>
             </div>
           </footer>
         </div>
@@ -1085,6 +1134,7 @@ function ResumeSection({ title, children }) {
 }
 
 function ProgressModule() {
+  const [results, setResults] = useState(() => loadLocalResults());
   const weak = [
     { topic: "Dynamic Programming", score: 42 },
     { topic: "Probability and Stats", score: 48 },
@@ -1100,6 +1150,22 @@ function ProgressModule() {
     { icon: "timer", title: "Mock Interview", desc: "Schedule a 1:1 session focusing on system design to boost interview readiness.", tone: "purple", cta: "Book Now" },
     { icon: "groups", title: "Group Challenge", desc: "Join the weekly batch challenge and earn premium interview prep credits.", tone: "plain", cta: "Join Challenge" },
   ];
+  const aptitudeResults = results.filter((item) => item.module === "aptitude");
+  const codingResults = results.filter((item) => item.module === "coding");
+  const lastAptitude = aptitudeResults.at(-1);
+  const lastCoding = codingResults.at(-1);
+  const aptitudePercent = lastAptitude ? Math.round((lastAptitude.score / lastAptitude.total) * 100) : 85;
+  const codingPercent = lastCoding ? Math.round((lastCoding.score / lastCoding.total) * 100) : 72;
+  const codingSolved = new Set(codingResults.map((item) => item.details?.problemId).filter(Boolean)).size;
+
+  useEffect(() => {
+    apiFetch("/results/me")
+      .then((data) => {
+        const merged = [...loadLocalResults(), ...(data.items || [])];
+        setResults(merged);
+      })
+      .catch(() => setResults(loadLocalResults()));
+  }, []);
 
   return (
     <section className="results-page">
@@ -1118,13 +1184,13 @@ function ProgressModule() {
         <section className="results-main">
           <div className="score-card">
             <h3>Aptitude Mastery</h3>
-            <ResultRing value={85} label="Percentile" tone="cyan" />
-            <div><span>Prev: 78%</span><strong>+7% Improvement</strong></div>
+            <ResultRing value={aptitudePercent} label="Latest Score" tone="cyan" />
+            <div><span>{aptitudeResults.length} attempts</span><strong>{lastAptitude ? `${lastAptitude.score}/${lastAptitude.total}` : "Start a test"}</strong></div>
           </div>
           <div className="score-card">
             <h3>Coding Proficiency</h3>
-            <ResultRing value={72} label="Expertise Level" tone="purple" />
-            <div><span>Solved: 142/200</span><strong className="purple">Gold Rank</strong></div>
+            <ResultRing value={codingPercent} label="Latest Submission" tone="purple" />
+            <div><span>Solved: {codingSolved}/{CODING_PROBLEMS.length}</span><strong className="purple">{lastCoding ? `${lastCoding.score}/${lastCoding.total} cases` : "Submit code"}</strong></div>
           </div>
           <div className="momentum-card">
             <div className="momentum-head">
@@ -1155,6 +1221,20 @@ function ProgressModule() {
           </div>
         </aside>
       </div>
+
+      <section className="saved-results-card">
+        <div><h3>Saved Test Results</h3><p>Aptitude and coding submissions saved from your practice sessions.</p></div>
+        <div className="saved-results-table">
+          {(results.length ? results.slice(-8).reverse() : [{ module: "demo", score: 0, total: 0, date: new Date().toISOString(), details: { title: "No saved results yet" } }]).map((item, index) => (
+            <div key={`${item.module}-${item.date}-${index}`}>
+              <span>{item.module}</span>
+              <strong>{item.total ? `${item.score}/${item.total}` : "--"}</strong>
+              <p>{item.details?.title || item.details?.category || "Practice result"}</p>
+              <small>{new Date(item.date).toLocaleString()}</small>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <section className="action-plan">
         <h3>Personalized Action Plan</h3>

@@ -3235,6 +3235,64 @@ textarea {
   font-weight: 800;
 }
 
+.saved-results-card {
+  margin-top: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 22px;
+  padding: 26px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+}
+
+.saved-results-card h3 {
+  margin: 0;
+  color: #f8fbff;
+  font-size: 24px;
+}
+
+.saved-results-card p {
+  margin: 4px 0 18px;
+  color: #c6c6cd;
+}
+
+.saved-results-table {
+  display: grid;
+  gap: 10px;
+}
+
+.saved-results-table > div {
+  display: grid;
+  grid-template-columns: 110px 90px minmax(0, 1fr) 190px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.saved-results-table span {
+  color: #4cd7f6;
+  font-weight: 900;
+  text-transform: capitalize;
+}
+
+.saved-results-table strong {
+  color: #f8fbff;
+}
+
+.saved-results-table p {
+  margin: 0;
+  overflow: hidden;
+  color: #c6c6cd;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-results-table small {
+  color: #798098;
+  text-align: right;
+}
+
 .leader-card > div:first-child {
   display: flex;
   justify-content: space-between;
@@ -3646,7 +3704,12 @@ textarea:focus-visible {
 
   .results-grid,
   .results-main,
-  .action-plan > div {
+  .action-plan > div,
+  .saved-results-table > div {
     grid-template-columns: 1fr;
+  }
+
+  .saved-results-table small {
+    text-align: left;
   }
 }
