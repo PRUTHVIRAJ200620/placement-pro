@@ -1575,6 +1575,12 @@ textarea {
   background: transparent;
 }
 
+.editor-footer > div button:nth-child(2) {
+  border: 1px solid rgba(208, 188, 255, 0.45);
+  color: #d0bcff;
+  background: rgba(208, 188, 255, 0.08);
+}
+
 .editor-footer > div button:last-child {
   border: 0;
   color: #003640;
@@ -2578,14 +2584,18 @@ textarea {
 
 .resume-architect-header button,
 .resume-form-actions button {
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 10px 18px;
+  color: #d4e4fa;
+  background: rgba(255, 255, 255, 0.05);
   cursor: pointer;
   font-weight: 800;
 }
 
 .resume-architect-header button:first-child,
-.resume-architect-header button:nth-child(2) {
+.resume-architect-header button:nth-child(2),
+.resume-architect-header button:nth-child(3) {
   border: 1px solid #4cd7f6;
   color: #4cd7f6;
   background: transparent;

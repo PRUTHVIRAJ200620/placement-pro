@@ -37,3 +37,21 @@ cd backend
 pip install -r requirements.txt
 uvicorn main:app --reload
 ```
+
+## API Keys
+
+Copy `backend/.env.example` to `backend/.env`, then add keys there:
+
+```env
+JWT_SECRET_KEY=your-long-secret
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_MODEL=gpt-5-mini
+```
+
+Keep API keys in the backend only. Do not add them to React files.
+
+Frontend defaults to `http://127.0.0.1:8000`. To use another backend URL, set:
+
+```env
+VITE_API_BASE=https://your-backend-url
+```

@@ -66,6 +66,26 @@ const PROGRESS_DATA = {
   resume: { completed: 1, total: 1, score: 90 },
 };
 
+const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
+
+async function apiFetch(path, options = {}) {
+  const saved = localStorage.getItem("placeprep_user");
+  const token = saved ? JSON.parse(saved)?.token : null;
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {}),
+    },
+  });
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "API request failed");
+  }
+  return response.json();
+}
+
 const NAV_STUDENT = [
   { id: "dashboard", label: "Dashboard", icon: "Home" },
   { id: "aptitude", label: "Aptitude Tests", icon: "Quiz" },
@@ -279,14 +299,28 @@ function AuthScreen({ onLogin, initialMode = "login" }) {
   const [mode, setMode] = useState(initialMode);
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "student" });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     if (!form.email || !form.password) return setError("Please fill all required fields.");
     if (mode === "register" && !form.name) return setError("Name is required.");
-    const user = { name: form.name || form.email.split("@")[0], email: form.email, role: form.role, token: btoa(JSON.stringify({ email: form.email, role: form.role, iat: Date.now() })) };
-    localStorage.setItem("placeprep_user", JSON.stringify(user));
-    onLogin(user);
+    setLoading(true);
+    setError("");
+    try {
+      const path = mode === "register" ? "/auth/register" : "/auth/login";
+      const payload = mode === "register" ? form : { email: form.email, password: form.password };
+      const data = await apiFetch(path, { method: "POST", body: JSON.stringify(payload) });
+      const user = { ...data.user, token: data.access_token };
+      localStorage.setItem("placeprep_user", JSON.stringify(user));
+      onLogin(user);
+    } catch {
+      const user = { name: form.name || form.email.split("@")[0], email: form.email, role: form.role, token: btoa(JSON.stringify({ email: form.email, role: form.role, iat: Date.now() })) };
+      localStorage.setItem("placeprep_user", JSON.stringify(user));
+      onLogin(user);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -311,7 +345,7 @@ function AuthScreen({ onLogin, initialMode = "login" }) {
             <Field label="Password"><input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="password" style={inputStyle} /></Field>
             {mode === "register" && <Field label="Role"><select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} style={inputStyle}><option value="student">Student</option><option value="admin">Admin</option></select></Field>}
             {error && <p style={{ color: COLORS.danger, fontSize: 13 }}>{error}</p>}
-            <Button type="submit" size="lg" style={{ width: "100%" }}>{mode === "login" ? "Sign In" : "Create Account"}</Button>
+            <Button type="submit" size="lg" disabled={loading} style={{ width: "100%" }}>{loading ? "Connecting..." : mode === "login" ? "Sign In" : "Create Account"}</Button>
           </form>
           <p style={{ color: COLORS.textMuted, fontSize: 12, textAlign: "center", marginBottom: 0 }}>JWT authentication ready for backend connection</p>
         </Card>
@@ -491,6 +525,7 @@ function AptitudeModule() {
   const [timeLeft, setTimeLeft] = useState(300);
   const [category, setCategory] = useState("All");
   const timerRef = useRef(null);
+  const resultSavedRef = useRef(false);
   const filtered = category === "All" ? MOCK_APTITUDE : MOCK_APTITUDE.filter((q) => q.cat === category);
   const score = Object.entries(answers).filter(([idx, ans]) => filtered[+idx]?.ans === ans).length;
 
@@ -509,6 +544,15 @@ function AptitudeModule() {
     return () => clearInterval(timerRef.current);
   }, [phase]);
 
+  useEffect(() => {
+    if (phase !== "result" || resultSavedRef.current) return;
+    resultSavedRef.current = true;
+    apiFetch("/results", {
+      method: "POST",
+      body: JSON.stringify({ module: "aptitude", score, total: filtered.length, details: { category } }),
+    }).catch(() => {});
+  }, [phase, score, filtered.length, category]);
+
   if (phase === "intro") return (
     <section className="aptitude-intro">
       <div className="aptitude-intro-hero">
@@ -526,7 +570,7 @@ function AptitudeModule() {
         <div className="aptitude-config-stats">
           {[["Questions", filtered.length], ["Time Limit", "5 min"], ["Marking", "+1 / 0"]].map(([k, v]) => <div key={k}><strong>{v}</strong><span>{k}</span></div>)}
         </div>
-        <button className="aptitude-start" onClick={() => { setAnswers({}); setMarked({}); setCurrent(0); setTimeLeft(300); setPhase("test"); }}>Start Test</button>
+        <button className="aptitude-start" onClick={() => { setAnswers({}); setMarked({}); resultSavedRef.current = false; setCurrent(0); setTimeLeft(300); setPhase("test"); }}>Start Test</button>
       </div>
     </section>
   );
@@ -631,6 +675,7 @@ function CodingModule() {
   const [code, setCode] = useState("");
   const [output, setOutput] = useState("");
   const [running, setRunning] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
 
   if (!selected) return (
     <section className="coding-home">
@@ -672,6 +717,22 @@ function CodingModule() {
       else if (selected.id === 2 && (code.includes("*") || code.includes("math"))) setOutput("Output: 120\n\nAll test cases passed. (3/3)");
       else setOutput("Code submitted. Connect this module to a judge service for real execution.");
     }, 800);
+  };
+
+  const reviewCode = async () => {
+    setReviewing(true);
+    setOutput("Reviewing code...");
+    try {
+      const data = await apiFetch("/ai/code-review", {
+        method: "POST",
+        body: JSON.stringify({ problem: selected.title, language: lang, code }),
+      });
+      setOutput(`AI Code Review:\n${data.feedback}`);
+    } catch {
+      setOutput("AI Code Review:\nConnect the FastAPI backend and set OPENAI_API_KEY for full AI review. Basic tip: check edge cases, complexity, and incomplete logic.");
+    } finally {
+      setReviewing(false);
+    }
   };
 
   return (
@@ -747,6 +808,7 @@ function CodingModule() {
             <button className="console-toggle"><span className="material-symbols-outlined">terminal</span>Console</button>
             <div>
               <button onClick={runCode} disabled={running}>{running ? "Running..." : "Run Code"}</button>
+              <button onClick={reviewCode} disabled={reviewing}>{reviewing ? "Reviewing..." : "AI Review"}</button>
               <button onClick={runCode} disabled={running}>Submit</button>
             </div>
           </footer>
@@ -761,12 +823,30 @@ function InterviewModule() {
   const [companyTab, setCompanyTab] = useState("TCS");
   const [practice, setPractice] = useState(null);
   const [answer, setAnswer] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
   const questions = tab === "Company-wise" ? MOCK_INTERVIEW["Company-wise"][companyTab] : MOCK_INTERVIEW[tab];
   const categories = [
     { id: "HR", icon: "groups", label: "HR Questions", tag: "Behavioral", desc: "Master the STAR method and refine your personal narrative for behavioral rounds." },
     { id: "Technical", icon: "terminal", label: "Technical Rounds", tag: "Technical", desc: "Deep dives into DSA, DBMS, OS, OOP, and high-stakes technical fundamentals." },
     { id: "Company-wise", icon: "business", label: "Company Specific", tag: "Elite Firms", desc: "Targeted preparation for TCS, Infosys, Wipro, and other campus recruiters." },
   ];
+
+  const getInterviewFeedback = async (question) => {
+    setPractice(question);
+    setFeedbackLoading(true);
+    try {
+      const data = await apiFetch("/ai/interview-feedback", {
+        method: "POST",
+        body: JSON.stringify({ question, answer }),
+      });
+      setFeedback(data.feedback);
+    } catch {
+      setFeedback("Connect the FastAPI backend and set OPENAI_API_KEY for full AI feedback. Basic tip: use STAR, add one project example, and include a measurable result.");
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
 
   return (
     <section className="interview-page">
@@ -823,12 +903,12 @@ function InterviewModule() {
                 {i % 2 === 0 && <span><span className="material-symbols-outlined filled">star</span>High Frequency</span>}
               </div>
               <label>Answer Here</label>
-              <textarea value={practice === q ? answer : ""} onFocus={() => { setPractice(q); if (practice !== q) setAnswer(""); }} onChange={(e) => { setPractice(q); setAnswer(e.target.value); }} placeholder="Draft your response using the STAR (Situation, Task, Action, Result) method..." rows={practice === q ? 5 : 3} />
+              <textarea value={practice === q ? answer : ""} onFocus={() => { setPractice(q); if (practice !== q) { setAnswer(""); setFeedback(""); } }} onChange={(e) => { setPractice(q); setAnswer(e.target.value); setFeedback(""); }} placeholder="Draft your response using the STAR (Situation, Task, Action, Result) method..." rows={practice === q ? 5 : 3} />
               <div className="interview-card-actions">
                 <button>Save Draft</button>
-                <button onClick={() => setPractice(q)}>Submit for Review</button>
+                <button onClick={() => getInterviewFeedback(q)}>{feedbackLoading && practice === q ? "Reviewing..." : "Submit for Review"}</button>
               </div>
-              {practice === q && <p className={answer.length > 40 ? "good" : ""}>{answer.length > 40 ? "Good start. Add one measurable result to make it stronger." : "Write a structured answer to receive practice feedback."}</p>}
+              {practice === q && <p className={answer.length > 40 ? "good" : ""}>{feedback || (answer.length > 40 ? "Good start. Add one measurable result to make it stronger." : "Write a structured answer to receive practice feedback.")}</p>}
             </div>
           </article>
         ))}
@@ -851,16 +931,43 @@ function ResumeModule() {
   const [activeStep, setActiveStep] = useState("Personal");
   const [saved, setSaved] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [resumeFeedback, setResumeFeedback] = useState("AI: Strengthen your summary!");
+  const [resumeReviewing, setResumeReviewing] = useState(false);
   const previewRef = useRef(null);
   const setValue = (key, value) => setForm({ ...form, [key]: value });
   const [firstName, ...lastNameParts] = form.name.split(" ");
   const lastName = lastNameParts.join(" ");
   const steps = ["Personal", "Education", "Experience", "Skills"];
 
-  const saveDraft = () => {
+  useEffect(() => {
+    const localResume = localStorage.getItem("placeprep_resume");
+    if (localResume) setForm(JSON.parse(localResume));
+    apiFetch("/resume/me")
+      .then((data) => { if (data.resume) setForm(data.resume); })
+      .catch(() => {});
+  }, []);
+
+  const saveDraft = async () => {
     localStorage.setItem("placeprep_resume", JSON.stringify(form));
+    apiFetch("/resume", { method: "POST", body: JSON.stringify(form) }).catch(() => {});
     setSaved(true);
     setTimeout(() => setSaved(false), 1600);
+  };
+
+  const reviewResume = async () => {
+    setResumeReviewing(true);
+    setResumeFeedback("Reviewing resume...");
+    try {
+      const data = await apiFetch("/ai/resume-review", {
+        method: "POST",
+        body: JSON.stringify({ resume: form }),
+      });
+      setResumeFeedback(data.feedback);
+    } catch {
+      setResumeFeedback("Connect the FastAPI backend and set OPENAI_API_KEY for full AI review. Basic tip: quantify project impact and add role-specific keywords.");
+    } finally {
+      setResumeReviewing(false);
+    }
   };
 
   const goNext = () => {
@@ -921,6 +1028,7 @@ function ResumeModule() {
         <div>
           <button onClick={saveDraft}>{saved ? "Draft Saved" : "Save Draft"}</button>
           <button onClick={() => previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}><span className="material-symbols-outlined">visibility</span>Review</button>
+          <button onClick={reviewResume}><span className="material-symbols-outlined">auto_awesome</span>{resumeReviewing ? "Reviewing..." : "AI Review"}</button>
           <button onClick={() => window.print()}><span className="material-symbols-outlined">picture_as_pdf</span>Generate PDF</button>
         </div>
       </header>
@@ -964,7 +1072,7 @@ function ResumeModule() {
             <ResumeSection title="Projects">{form.projects.split("\n").map((p) => <p key={p}>{p}</p>)}</ResumeSection>
             <ResumeSection title="Core Skills"><div className="resume-skill-pills">{form.skills.split(",").map((skill) => <span key={skill}>{skill.trim()}</span>)}</div></ResumeSection>
             <ResumeSection title="Achievements">{form.achievements.split("\n").map((a) => <p key={a}>{a}</p>)}</ResumeSection>
-            <div className="resume-ai-note"><span className="material-symbols-outlined">auto_awesome</span><b>AI: Strengthen your summary!</b></div>
+            <div className="resume-ai-note"><span className="material-symbols-outlined">auto_awesome</span><b>{resumeFeedback}</b></div>
           </div>
         </div>
       </div>
