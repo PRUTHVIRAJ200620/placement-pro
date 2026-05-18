@@ -847,26 +847,82 @@ function InterviewModule() {
 }
 
 function ResumeModule() {
-  const [form, setForm] = useState({ name: "Rahul Sharma", email: "rahul@college.edu", phone: "9876543210", college: "JNTU Hyderabad", degree: "B.Tech CSE", cgpa: "8.4", skills: "Python, Java, React, SQL, Git", projects: "1. Placement Portal - React and Python web app\n2. Library Management System - Java and MySQL", internship: "Software Intern at TCS (June-Aug 2024)", achievements: "Winner, HackFest 2024\nTop 5%, Dept. Merit List" });
-  const [preview, setPreview] = useState(true);
+  const [form, setForm] = useState({ name: "Rahul Sharma", email: "rahul@college.edu", phone: "9876543210", college: "JNTU Hyderabad", degree: "B.Tech CSE", cgpa: "8.4", skills: "Python, Java, React, SQL, Git", projects: "1. Placement Portal - React and Python web app\n2. Library Management System - Java and MySQL", internship: "Software Intern at TCS (June-Aug 2024)", achievements: "Winner, HackFest 2024\nTop 5%, Dept. Merit List", summary: "Aspiring Software Engineer with a passion for building scalable web applications and mastering complex algorithms.", portfolio: "linkedin.com/in/rahulsharma" });
   const setValue = (key, value) => setForm({ ...form, [key]: value });
+  const [firstName, ...lastNameParts] = form.name.split(" ");
+  const lastName = lastNameParts.join(" ");
+
   return (
-    <section>
-      <h2 style={{ color: COLORS.text }}>Resume Builder</h2>
-      <div className="resume-grid" style={{ display: "grid", gridTemplateColumns: preview ? "1fr 1fr" : "1fr", gap: 20 }}>
-        <Card>
-          {["name", "email", "phone", "college", "degree", "cgpa"].map((key) => <Field key={key} label={key.toUpperCase()}><input value={form[key]} onChange={(e) => setValue(key, e.target.value)} style={inputStyle} /></Field>)}
-          {["skills", "projects", "internship", "achievements"].map((key) => <Field key={key} label={key.toUpperCase()}><textarea value={form[key]} onChange={(e) => setValue(key, e.target.value)} rows={key === "skills" ? 2 : 3} style={{ ...inputStyle, resize: "vertical" }} /></Field>)}
-          <Button onClick={() => setPreview(!preview)}>{preview ? "Hide Preview" : "Preview Resume"}</Button>
-        </Card>
-        {preview && <div style={{ background: "#fff", borderRadius: 8, padding: "2rem", color: "#111", minHeight: 680 }}><div style={{ borderBottom: "3px solid #6366F1", paddingBottom: "1rem", marginBottom: "1rem" }}><h2 style={{ margin: 0, color: "#1e1b4b" }}>{form.name}</h2><p style={{ margin: "4px 0 0", color: "#555", fontSize: 13 }}>{form.email} | {form.phone}</p></div><ResumeSection title="Education"><p><strong>{form.college}</strong> - {form.degree}</p><p>CGPA: {form.cgpa}</p></ResumeSection><ResumeSection title="Skills"><p>{form.skills}</p></ResumeSection><ResumeSection title="Projects">{form.projects.split("\n").map((p) => <p key={p}>{p}</p>)}</ResumeSection><ResumeSection title="Experience"><p>{form.internship}</p></ResumeSection><ResumeSection title="Achievements">{form.achievements.split("\n").map((a) => <p key={a}>{a}</p>)}</ResumeSection></div>}
+    <section className="resume-architect">
+      <header className="resume-architect-header">
+        <div>
+          <h1>Resume Architect</h1>
+          <p>AI-Enhanced Career Builder</p>
+        </div>
+        <div>
+          <button>Save Draft</button>
+          <button><span className="material-symbols-outlined">picture_as_pdf</span>Generate PDF</button>
+        </div>
+      </header>
+
+      <div className="resume-builder-grid">
+        <div className="resume-form-side">
+          <div className="resume-stepper">
+            {["Personal", "Education", "Experience", "Skills"].map((step, index) => (
+              <div key={step} className={index === 0 ? "active" : ""}>
+                <span>{index + 1}</span>
+                <small>{step}</small>
+              </div>
+            ))}
+          </div>
+
+          <div className="resume-form-card">
+            <div className="resume-form-title"><span className="material-symbols-outlined">person</span><h2>Personal Information</h2></div>
+            <div className="resume-fields">
+              <label><span>First Name</span><input value={firstName || ""} onChange={(e) => setValue("name", `${e.target.value} ${lastName}`.trim())} /></label>
+              <label><span>Last Name</span><input value={lastName} onChange={(e) => setValue("name", `${firstName || ""} ${e.target.value}`.trim())} /></label>
+              <label className="wide"><span>Professional Summary</span><textarea value={form.summary} onChange={(e) => setValue("summary", e.target.value)} rows={4} /></label>
+              <label><span>Email Address</span><input value={form.email} onChange={(e) => setValue("email", e.target.value)} /></label>
+              <label><span>Phone Number</span><input value={form.phone} onChange={(e) => setValue("phone", e.target.value)} /></label>
+              <label className="wide"><span>LinkedIn / Portfolio URL</span><input value={form.portfolio} onChange={(e) => setValue("portfolio", e.target.value)} /></label>
+              <label><span>College</span><input value={form.college} onChange={(e) => setValue("college", e.target.value)} /></label>
+              <label><span>Degree</span><input value={form.degree} onChange={(e) => setValue("degree", e.target.value)} /></label>
+              <label className="wide"><span>Technical Skills</span><textarea value={form.skills} onChange={(e) => setValue("skills", e.target.value)} rows={2} /></label>
+              <label className="wide"><span>Projects</span><textarea value={form.projects} onChange={(e) => setValue("projects", e.target.value)} rows={3} /></label>
+            </div>
+            <div className="resume-form-actions"><button>Save & Next</button></div>
+          </div>
+
+          <div className="resume-collapsed-list">
+            {["Education", "Experience"].map((item) => <div key={item}><span className="material-symbols-outlined">{item === "Education" ? "school" : "work"}</span><strong>{item}</strong><span className="material-symbols-outlined">add_circle</span></div>)}
+          </div>
+        </div>
+
+        <div className="resume-preview-side">
+          <div className="resume-preview-tools"><span>Live Preview</span><div><button><span className="material-symbols-outlined">zoom_in</span></button><button><span className="material-symbols-outlined">zoom_out</span></button></div></div>
+          <div className="resume-paper">
+            <i />
+            <header>
+              <h1>{form.name.toUpperCase()}</h1>
+              <p>Software Engineer & Tech Enthusiast</p>
+              <div><span><span className="material-symbols-outlined">mail</span>{form.email}</span><span><span className="material-symbols-outlined">call</span>{form.phone}</span><span><span className="material-symbols-outlined">public</span>{form.portfolio}</span></div>
+            </header>
+            <ResumeSection title="Professional Summary"><p>{form.summary}</p></ResumeSection>
+            <ResumeSection title="Experience"><p><strong>{form.internship}</strong></p></ResumeSection>
+            <ResumeSection title="Education"><p><strong>{form.degree}</strong></p><p>{form.college} | CGPA: {form.cgpa}</p></ResumeSection>
+            <ResumeSection title="Projects">{form.projects.split("\n").map((p) => <p key={p}>{p}</p>)}</ResumeSection>
+            <ResumeSection title="Core Skills"><div className="resume-skill-pills">{form.skills.split(",").map((skill) => <span key={skill}>{skill.trim()}</span>)}</div></ResumeSection>
+            <ResumeSection title="Achievements">{form.achievements.split("\n").map((a) => <p key={a}>{a}</p>)}</ResumeSection>
+            <div className="resume-ai-note"><span className="material-symbols-outlined">auto_awesome</span><b>AI: Strengthen your summary!</b></div>
+          </div>
+        </div>
       </div>
     </section>
   );
 }
 
 function ResumeSection({ title, children }) {
-  return <section style={{ marginBottom: "1rem" }}><h4 style={{ color: "#6366F1", fontSize: 12, letterSpacing: "0.08em", borderBottom: "1px solid #e5e7eb", paddingBottom: 4 }}>{title.toUpperCase()}</h4>{children}</section>;
+  return <section className="resume-preview-section"><h4>{title.toUpperCase()}</h4>{children}</section>;
 }
 
 function ProgressModule() {
