@@ -132,8 +132,151 @@ const Field = ({ label, children }) => (
 
 const inputStyle = { width: "100%", padding: "10px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: COLORS.primary, color: COLORS.text, fontSize: 14, outline: "none" };
 
-function AuthScreen({ onLogin }) {
-  const [mode, setMode] = useState("login");
+function LandingPage({ onAuth }) {
+  const stats = [
+    { icon: "school", value: "10k+", label: "Students Placed", width: "85%" },
+    { icon: "task_alt", value: "50k+", label: "Tests Completed", width: "92%" },
+    { icon: "business_center", value: "500+", label: "Companies", width: "78%" },
+  ];
+  const avatars = [
+    "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=96&q=80",
+    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=96&q=80",
+    "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=96&q=80",
+  ];
+
+  return (
+    <main className="landing-page">
+      <nav className="lp-nav">
+        <div className="lp-brand">PrepNexus</div>
+        <div className="lp-links">
+          <a href="#features">Features</a>
+          <a href="#stats">Stats</a>
+          <a href="#success">Success Stories</a>
+          <a href="#pricing">Pricing</a>
+        </div>
+        <div className="lp-actions">
+          <button onClick={() => onAuth("login")}>Login</button>
+          <button onClick={() => onAuth("register")}>Register</button>
+        </div>
+      </nav>
+
+      <section className="lp-hero">
+        <div className="lp-hero-copy">
+          <span>Engineered For Excellence</span>
+          <h1>Placement Preparation <em>Portal</em></h1>
+          <p>The ultimate destination for ambitious engineers. Master aptitude, ace coding challenges, and crush technical interviews with our data-driven curriculum.</p>
+          <div className="lp-hero-buttons">
+            <button onClick={() => onAuth("register")}>Get Started Free</button>
+            <button onClick={() => onAuth("login")}><span className="material-symbols-outlined">play_circle</span> Watch Demo</button>
+          </div>
+          <div className="lp-social-proof">
+            <div>
+              {avatars.map((src) => <img key={src} src={src} alt="Student" />)}
+            </div>
+            <p>Joined by <strong>2,500+</strong> this week</p>
+          </div>
+        </div>
+
+        <div className="lp-hero-visual">
+          <div className="lp-dashboard-preview">
+            <div className="lp-window-dots"><i /><i /><i /></div>
+            <div className="lp-preview-grid">
+              <section>
+                <small>Readiness</small>
+                <strong>87%</strong>
+                <b />
+              </section>
+              <section>
+                <small>Problems</small>
+                <strong>312</strong>
+                <b />
+              </section>
+              <section className="wide">
+                <small>Weekly Coding Progress</small>
+                <div className="lp-mini-bars">{[42, 68, 52, 88, 76, 48, 36].map((height, index) => <span key={index} style={{ height: `${height}%` }} />)}</div>
+              </section>
+            </div>
+            <div className="lp-floating-widget">
+              <span className="material-symbols-outlined">verified</span>
+              <div><small>Verified Skill</small><strong>Data Structures</strong></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="stats" className="lp-stats">
+        {stats.map((stat) => (
+          <div key={stat.label} className="lp-glass-card">
+            <div className="lp-stat-icon"><span className="material-symbols-outlined">{stat.icon}</span></div>
+            <strong>{stat.value}</strong>
+            <p>{stat.label}</p>
+            <i><b style={{ width: stat.width }} /></i>
+          </div>
+        ))}
+      </section>
+
+      <section id="features" className="lp-features">
+        <div className="lp-section-title">
+          <h2>Precision Preparation Tools</h2>
+          <p>Our modular learning approach lets students focus on the exact pillars of modern recruitment.</p>
+        </div>
+        <div className="lp-feature-grid">
+          <article className="lp-glass-card lp-code-feature">
+            <div>
+              <span className="material-symbols-outlined">code_blocks</span>
+              <small>Technical Mastery</small>
+            </div>
+            <h3>Real-world Coding Assessments</h3>
+            <p>Solve challenges inspired by top companies with instant feedback, language starters, and practice history.</p>
+            <div className="lp-code-panel"><i /><i /><i /><span /><span /><span /><span /></div>
+          </article>
+          <article className="lp-glass-card">
+            <span className="material-symbols-outlined lp-feature-icon">psychology</span>
+            <h3>Aptitude Logic</h3>
+            <p>Master quantitative, verbal, and logical reasoning with timed adaptive mock tests.</p>
+            <button onClick={() => onAuth("register")}>Explore Topics <span className="material-symbols-outlined">arrow_forward</span></button>
+          </article>
+          <article className="lp-glass-card">
+            <span className="material-symbols-outlined lp-feature-icon purple">video_chat</span>
+            <h3>Mock Interviews</h3>
+            <p>Practice HR and technical answers with AI-ready feedback for placement rounds.</p>
+            <button onClick={() => onAuth("register")}>Try AI Interview <span className="material-symbols-outlined">arrow_forward</span></button>
+          </article>
+          <article className="lp-glass-card lp-resume-feature">
+            <div>
+              <h3>Resume Analyzer</h3>
+              <p>Score resumes for ATS matching, keywords, grammar, and project clarity before applying.</p>
+              <button onClick={() => onAuth("register")}>Upload Your Resume</button>
+            </div>
+            <div className="lp-upload-box"><span className="material-symbols-outlined">upload_file</span><small>Drop PDF Here</small></div>
+          </article>
+        </div>
+      </section>
+
+      <section className="lp-cta">
+        <h2>Ready to Secure Your <em>Dream Career?</em></h2>
+        <p>Join the students who are transforming their technical careers through focused placement preparation.</p>
+        <div>
+          <button onClick={() => onAuth("register")}>Register Now</button>
+          <button onClick={() => onAuth("login")}>Login</button>
+        </div>
+      </section>
+
+      <footer className="lp-footer">
+        <div>
+          <h3>PrepNexus</h3>
+          <p>Elevating education for the digital generation through advanced technical prep tools.</p>
+        </div>
+        <div><h4>Platform</h4><a>Aptitude Module</a><a>Coding Challenges</a><a>Interview Prep</a></div>
+        <div><h4>Resources</h4><a>Success Stories</a><a>Career Blog</a><a>Learning Path</a></div>
+        <div><h4>Connect</h4><p>Subscribe to updates and placement tips.</p><div className="lp-subscribe"><input placeholder="Email" /><button><span className="material-symbols-outlined">send</span></button></div></div>
+      </footer>
+    </main>
+  );
+}
+
+function AuthScreen({ onLogin, initialMode = "login" }) {
+  const [mode, setMode] = useState(initialMode);
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "student" });
   const [error, setError] = useState("");
 
@@ -528,6 +671,7 @@ export default function App() {
     const saved = localStorage.getItem("placeprep_user");
     return saved ? JSON.parse(saved) : null;
   });
+  const [authMode, setAuthMode] = useState(null);
   const [active, setActive] = useState(user?.role === "admin" ? "admin-dashboard" : "dashboard");
 
   const handleLogin = (nextUser) => {
@@ -540,7 +684,8 @@ export default function App() {
     setUser(null);
   };
 
-  if (!user) return <AuthScreen onLogin={handleLogin} />;
+  if (!user && !authMode) return <LandingPage onAuth={setAuthMode} />;
+  if (!user) return <AuthScreen onLogin={handleLogin} initialMode={authMode} />;
 
   const renderContent = () => {
     if (user.role === "admin") return <AdminModule view={active} />;
