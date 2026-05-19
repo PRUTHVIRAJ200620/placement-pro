@@ -90,18 +90,38 @@ const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 
 async function apiFetch(path, options = {}) {
   const saved = localStorage.getItem("placeprep_user");
-  const token = saved ? JSON.parse(saved)?.token : null;
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
-    },
-  });
+  let token = null;
+  try {
+    token = saved ? JSON.parse(saved)?.token : null;
+  } catch {
+    localStorage.removeItem("placeprep_user");
+  }
+  let response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
+      },
+    });
+  } catch {
+    throw new Error("Backend service is not reachable. Your work is saved locally.");
+  }
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || "API request failed");
+    let message = "Request failed. Please try again.";
+    try {
+      const data = await response.json();
+      message = data.detail || data.message || message;
+    } catch {
+      try {
+        message = (await response.text()) || message;
+      } catch {
+        message = "Request failed. Please try again.";
+      }
+    }
+    throw new Error(message);
   }
   return response.json();
 }
@@ -114,6 +134,33 @@ function saveLocalResult(result) {
 
 function loadLocalResults() {
   return JSON.parse(localStorage.getItem("placeprep_results") || "[]");
+}
+
+function uniqueResults(items) {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = `${item.module}-${item.date}-${item.score}-${item.total}-${item.details?.title || item.details?.category || ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function resultPercent(item) {
+  return item?.total ? Math.round((item.score / item.total) * 100) : 0;
+}
+
+function resultMetrics(results) {
+  const aptitude = results.filter((item) => item.module === "aptitude");
+  const coding = results.filter((item) => item.module === "coding");
+  const latestAptitude = aptitude.at(-1);
+  const latestCoding = coding.at(-1);
+  const solvedCoding = new Set(coding.map((item) => item.details?.problemId || item.details?.title).filter(Boolean)).size;
+  const completed = aptitude.length + coding.length;
+  const readiness = completed
+    ? Math.round(((resultPercent(latestAptitude) || 0) + (resultPercent(latestCoding) || 0)) / (latestAptitude && latestCoding ? 2 : 1))
+    : 0;
+  return { aptitude, coding, latestAptitude, latestCoding, solvedCoding, completed, readiness };
 }
 
 function loadLocalUsers() {
@@ -443,24 +490,68 @@ function Sidebar({ user, active, setActive, onLogout }) {
 }
 
 function Dashboard({ user, setActive }) {
+  const [results, setResults] = useState(() => loadLocalResults());
+
+  useEffect(() => {
+    apiFetch("/results/me")
+      .then((data) => setResults(uniqueResults([...loadLocalResults(), ...(data.items || [])])))
+      .catch(() => setResults(loadLocalResults()));
+  }, []);
+
+  const metrics = resultMetrics(results);
+  const aptitudeScore = resultPercent(metrics.latestAptitude);
+  const codingScore = resultPercent(metrics.latestCoding);
+  const recentResults = results.slice(-7);
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const activityCounts = days.map((day) => ({
+    day,
+    count: recentResults.filter((item) => days[new Date(item.date).getDay()] === day).length,
+  }));
+  const maxActivity = Math.max(1, ...activityCounts.map((item) => item.count));
   const modules = [
-    { id: "aptitude", icon: "calculate", label: "Aptitude Master", desc: "Master logical reasoning, quantitative analysis, and verbal ability.", count: "42 Modules", done: "80% Done", width: "80%", tone: "cyan" },
-    { id: "coding", icon: "code", label: "Coding Arsenal", desc: "Practice data structures, algorithms, and company coding patterns.", count: "128 Challenges", done: "45% Done", width: "45%", tone: "purple" },
-    { id: "interview", icon: "record_voice_over", label: "Interview Simulator", desc: "Prepare with HR, technical, and AI-assisted mock interview rounds.", count: "15 Sessions", done: "12% Done", width: "12%", tone: "silver" },
-  ];
-  const activity = [
-    { day: "Mon", height: "40%", fill: "60%" },
-    { day: "Tue", height: "70%", fill: "85%" },
-    { day: "Wed", height: "55%", fill: "40%" },
-    { day: "Thu", height: "90%", fill: "95%" },
-    { day: "Fri", height: "65%", fill: "70%" },
-    { day: "Sat", height: "40%", fill: "50%" },
-    { day: "Sun", height: "30%", fill: "20%" },
+    {
+      id: "aptitude",
+      icon: "calculate",
+      label: "Aptitude Master",
+      desc: "Master logical reasoning, quantitative analysis, and verbal ability.",
+      count: `${metrics.aptitude.length} Attempts`,
+      done: metrics.latestAptitude ? `${aptitudeScore}% Latest` : "Not started",
+      width: `${aptitudeScore}%`,
+      tone: "cyan",
+    },
+    {
+      id: "coding",
+      icon: "code",
+      label: "Coding Arsenal",
+      desc: "Practice data structures, algorithms, and company coding patterns.",
+      count: `${metrics.solvedCoding}/${CODING_PROBLEMS.length} Solved`,
+      done: metrics.latestCoding ? `${codingScore}% Latest` : "Not started",
+      width: `${codingScore}%`,
+      tone: "purple",
+    },
+    {
+      id: "interview",
+      icon: "record_voice_over",
+      label: "Interview Simulator",
+      desc: "Prepare with HR, technical, and AI-assisted mock interview rounds.",
+      count: "Practice Mode",
+      done: "Answer drafts saved",
+      width: "0%",
+      tone: "silver",
+    },
   ];
   const tests = [
-    { date: "24", month: "May", title: "Tech Giant Mock Drive", desc: "System design and problem solving" },
-    { date: "28", month: "May", title: "HR Round Strategy", desc: "Behavioral workshop with mentors" },
+    { action: "aptitude", title: "Take Aptitude Test", desc: "Save a scored attempt to update readiness." },
+    { action: "coding", title: "Submit Coding Problem", desc: "Run and submit code to update solved challenges." },
   ];
+  const unlockedBadges = [
+    metrics.aptitude.length ? "auto_awesome" : null,
+    metrics.coding.length ? "terminal" : null,
+    metrics.readiness >= 75 ? "trophy" : null,
+  ].filter(Boolean);
+  const heroCopy = metrics.completed
+    ? `You have ${metrics.completed} saved practice attempt${metrics.completed === 1 ? "" : "s"}. Current readiness is ${metrics.readiness}%, based on your latest aptitude and coding performance.`
+    : "Start an aptitude test or submit a coding problem. Your readiness score, weekly activity, and module progress will update from your real attempts.";
 
   return (
     <section className="pn-dashboard">
@@ -475,47 +566,47 @@ function Dashboard({ user, setActive }) {
       <div className="pn-hero">
         <div className="pn-hero-copy">
           <h1>Welcome back, {user.name}!</h1>
-          <p>You're in the top 5% of your batch. Your dream placement is just 12 modules away. Keep the momentum going.</p>
+          <p>{heroCopy}</p>
           <div className="pn-hero-actions">
-            <button onClick={() => setActive("coding")}>Resume Coding Practice</button>
-            <button onClick={() => setActive("progress")}>View Daily Roadmap</button>
+            <button onClick={() => setActive(metrics.latestCoding ? "coding" : "aptitude")}>{metrics.completed ? "Continue Practice" : "Start First Test"}</button>
+            <button onClick={() => setActive("progress")}>View Results</button>
           </div>
         </div>
         <div className="pn-streak-card">
-          <p>Current Streak</p>
-          <strong>14</strong>
-          <span>Days of non-stop growth</span>
+          <p>Saved Attempts</p>
+          <strong>{metrics.completed}</strong>
+          <span>{metrics.completed ? "Results recorded in your portal" : "Complete tests to build history"}</span>
           <div className="pn-spark">
-            {[4, 6, 8, 10, 12, 10, 8].map((h, index) => <i key={index} style={{ height: `${h * 4}px` }} />)}
+            {activityCounts.map((item, index) => <i key={item.day} style={{ height: `${Math.max(6, 12 + ((item.count / maxActivity) * 36))}px`, opacity: item.count ? 1 : 0.35 }} />)}
           </div>
         </div>
       </div>
 
       <div className="pn-analytics-grid">
         <div className="pn-glass-card pn-readiness">
-          <div className="pn-ring" style={{ "--score": 75 }}>
+          <div className="pn-ring" style={{ "--score": metrics.readiness }}>
             <div>
-              <strong>75%</strong>
+              <strong>{metrics.readiness}%</strong>
               <span>Course Readiness</span>
             </div>
           </div>
           <h3>Readiness Score</h3>
-          <p>Your aptitude and coding scores are peaking this week.</p>
+          <p>{metrics.completed ? "Calculated from your latest saved aptitude and coding attempts." : "No scored attempts yet. Finish a test to calculate readiness."}</p>
         </div>
 
         <div className="pn-glass-card pn-weekly">
           <div className="pn-section-head">
             <div>
               <h3>Weekly Activity</h3>
-              <p>Problems solved per day</p>
+              <p>{metrics.completed ? "Saved attempts by day" : "No activity recorded yet"}</p>
             </div>
-            <div className="pn-legend"><span />Practice <em />Mock Tests</div>
+            <div className="pn-legend"><span />Attempts <em />Results</div>
           </div>
           <div className="pn-bars">
-            {activity.map((item) => (
+            {activityCounts.map((item) => (
               <div key={item.day} className="pn-bar-wrap">
-                <div className="pn-bar-track" style={{ height: item.height }}>
-                  <div style={{ height: item.fill }} />
+                <div className="pn-bar-track" style={{ height: `${Math.max(24, (item.count / maxActivity) * 100)}%` }}>
+                  <div style={{ height: item.count ? "100%" : "8%" }} />
                 </div>
                 <span>{item.day}</span>
               </div>
@@ -542,9 +633,9 @@ function Dashboard({ user, setActive }) {
           <div className="pn-test-list">
             {tests.map((test) => (
               <div key={test.title} className="pn-test-item">
-                <div><strong>{test.date}</strong><span>{test.month}</span></div>
+                <div><strong>{test.action === "aptitude" ? metrics.aptitude.length : metrics.coding.length}</strong><span>done</span></div>
                 <section><h4>{test.title}</h4><p>{test.desc}</p></section>
-                <button>Remind me</button>
+                <button onClick={() => setActive(test.action)}>Open</button>
               </div>
             ))}
           </div>
@@ -554,10 +645,10 @@ function Dashboard({ user, setActive }) {
           <h3>Recent Badges</h3>
           <div className="pn-badges">
             {["auto_awesome", "terminal", "trophy", "military_tech"].map((icon, index) => (
-              <div key={icon} className={index === 3 ? "locked" : ""}><span className="material-symbols-outlined">{icon}</span></div>
+              <div key={icon} className={unlockedBadges.includes(icon) ? "" : "locked"}><span className="material-symbols-outlined">{icon}</span></div>
             ))}
           </div>
-          <p className="pn-badge-copy">You've earned <strong>3 new badges</strong> this month. Complete the Red-Black Trees challenge to unlock the Coding Master badge.</p>
+          <p className="pn-badge-copy">{unlockedBadges.length ? <>You've unlocked <strong>{unlockedBadges.length} badge{unlockedBadges.length === 1 ? "" : "s"}</strong> from real activity.</> : "No badges yet. Complete aptitude and coding tests to unlock them."}</p>
         </div>
       </div>
     </section>
@@ -760,16 +851,20 @@ function CodingModule() {
   const [running, setRunning] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [generatingProblems, setGeneratingProblems] = useState(false);
+  const [codingNotice, setCodingNotice] = useState("");
   const [solvedProblems, setSolvedProblems] = useState(() => JSON.parse(localStorage.getItem("placeprep_solved_coding") || "[]"));
 
   const generateCodingProblems = async () => {
     setGeneratingProblems(true);
+    setCodingNotice("");
     try {
       const data = await apiFetch("/ai/questions", { method: "POST", body: JSON.stringify({ kind: "coding", count: 3 }) });
       const items = (data.items || []).map((item, index) => ({ ...item, id: Date.now() + index, starterJava: item.starterJava, starterC: item.starterC }));
       setProblemBank(items.length > 1 ? items : shuffled([...CODING_PROBLEMS, ...EXTRA_CODING]).slice(0, 3).map((item, index) => ({ ...item, id: Date.now() + index })));
+      setCodingNotice(items.length > 1 ? "Fresh AI coding set loaded." : "Fresh local coding set loaded.");
     } catch {
       setProblemBank(shuffled([...CODING_PROBLEMS, ...EXTRA_CODING]).slice(0, 3).map((item, index) => ({ ...item, id: Date.now() + index })));
+      setCodingNotice("AI question service is unavailable, so a fresh local coding set was loaded.");
     } finally {
       setSelected(null);
       setGeneratingProblems(false);
@@ -786,6 +881,7 @@ function CodingModule() {
         </div>
         <button className="generate-code-btn" onClick={generateCodingProblems}>{generatingProblems ? "Generating..." : "Generate Fresh Problems"}</button>
       </div>
+      {codingNotice && <div className="module-notice">{codingNotice}</div>}
       <div className="coding-problem-list">
         {problemBank.map((p) => (
           <button key={p.id} onClick={() => { setSelected(p); setLang("Python"); setCode(p.starterPython); setOutput(""); }} className="coding-problem-card">
@@ -815,7 +911,7 @@ function CodingModule() {
       if (code.includes("pass")) setOutput("Function body is incomplete. Replace pass with your implementation.");
       else if (selected.id === 1 && code.includes("[::-1]")) setOutput("Output: olleh\n\nAll test cases passed. (3/3)");
       else if (selected.id === 2 && (code.includes("*") || code.includes("math"))) setOutput("Output: 120\n\nAll test cases passed. (3/3)");
-      else setOutput("Code submitted. Connect this module to a judge service for real execution.");
+      else setOutput("Local check complete. Submit to save this attempt; advanced online judging can be connected later.");
     }, 800);
   };
 
@@ -866,7 +962,12 @@ function CodingModule() {
       });
       setOutput(`AI Code Review:\n${data.feedback}`);
     } catch {
-      setOutput("AI Code Review:\nConnect the FastAPI backend and set OPENAI_API_KEY for full AI review. Basic tip: check edge cases, complexity, and incomplete logic.");
+      const localTips = [
+        code.includes("pass") ? "The function is still incomplete." : "The function has an implementation.",
+        code.length < 80 ? "Add a few more edge-case checks before submitting." : "Your solution has enough structure for a first review.",
+        "Check empty input, single item input, duplicate values, and time complexity.",
+      ];
+      setOutput(`Code Review:\n${localTips.join("\n")}\n\nAI review is temporarily unavailable, but your code editor and result saving still work.`);
     } finally {
       setReviewing(false);
     }
@@ -979,7 +1080,7 @@ function InterviewModule() {
       });
       setFeedback(data.feedback);
     } catch {
-      setFeedback("Connect the FastAPI backend and set OPENAI_API_KEY for full AI feedback. Basic tip: use STAR, add one project example, and include a measurable result.");
+      setFeedback("AI feedback is temporarily unavailable. Local tip: use the STAR format, include one project example, and add a measurable result.");
     } finally {
       setFeedbackLoading(false);
     }
@@ -1101,7 +1202,7 @@ function ResumeModule() {
       });
       setResumeFeedback(data.feedback);
     } catch {
-      setResumeFeedback("Connect the FastAPI backend and set OPENAI_API_KEY for full AI review. Basic tip: quantify project impact and add role-specific keywords.");
+      setResumeFeedback("AI resume review is temporarily unavailable. Local tip: quantify project impact and add role-specific keywords.");
     } finally {
       setResumeReviewing(false);
     }
@@ -1224,34 +1325,29 @@ function ResumeSection({ title, children }) {
 function ProgressModule() {
   const [results, setResults] = useState(() => loadLocalResults());
   const [expandedResult, setExpandedResult] = useState(null);
-  const weak = [
-    { topic: "Dynamic Programming", score: 42 },
-    { topic: "Probability and Stats", score: 48 },
-    { topic: "System Design", score: 51 },
-  ];
-  const leaderboard = [
-    { rank: 1, name: "Jordan Davis", points: 3912, initials: "JD" },
-    { rank: 2, name: "Sarah Miller", points: 3780, initials: "SM" },
-    { rank: 3, name: "Rohan Kapoor", points: 3650, initials: "RK" },
-  ];
-  const actions = [
-    { icon: "menu_book", title: "Review DP Basics", desc: "Your recursion score is strong, but DP remains a bottleneck. Start with memoization.", tone: "cyan", cta: "Start Lesson" },
-    { icon: "timer", title: "Mock Interview", desc: "Schedule a 1:1 session focusing on system design to boost interview readiness.", tone: "purple", cta: "Book Now" },
-    { icon: "groups", title: "Group Challenge", desc: "Join the weekly batch challenge and earn premium interview prep credits.", tone: "plain", cta: "Join Challenge" },
-  ];
   const aptitudeResults = results.filter((item) => item.module === "aptitude");
   const codingResults = results.filter((item) => item.module === "coding");
   const lastAptitude = aptitudeResults.at(-1);
   const lastCoding = codingResults.at(-1);
-  const aptitudePercent = lastAptitude ? Math.round((lastAptitude.score / lastAptitude.total) * 100) : 85;
-  const codingPercent = lastCoding ? Math.round((lastCoding.score / lastCoding.total) * 100) : 72;
+  const aptitudePercent = resultPercent(lastAptitude);
+  const codingPercent = resultPercent(lastCoding);
   const codingSolved = new Set(codingResults.map((item) => item.details?.problemId).filter(Boolean)).size;
+  const weak = [
+    !lastAptitude ? { topic: "Aptitude Test", score: 0, note: "No attempt saved yet" } : aptitudePercent < 60 ? { topic: lastAptitude.details?.category || "Aptitude", score: aptitudePercent, note: "Latest score is below target" } : null,
+    !lastCoding ? { topic: "Coding Test", score: 0, note: "No submission saved yet" } : codingPercent < 60 ? { topic: lastCoding.details?.title || "Coding", score: codingPercent, note: "Latest submission needs improvement" } : null,
+  ].filter(Boolean);
+  const actions = [
+    { icon: "calculate", title: lastAptitude ? "Improve Aptitude Score" : "Start Aptitude Test", desc: lastAptitude ? "Retake your weakest aptitude category and compare the new score here." : "Complete one aptitude test to unlock readiness tracking.", tone: "cyan", cta: "Practice Aptitude" },
+    { icon: "code", title: lastCoding ? "Solve Next Coding Problem" : "Submit First Code", desc: lastCoding ? "Submit another problem to increase solved count and trend accuracy." : "Run and submit a coding challenge to build your coding profile.", tone: "purple", cta: "Practice Coding" },
+    { icon: "description", title: "Review Saved Answers", desc: results.length ? "Open saved results below to inspect answers, correct options, and submitted code." : "Saved answer review appears after your first attempt.", tone: "plain", cta: "Review Results" },
+  ];
+  const recent = results.slice(-6);
 
   useEffect(() => {
     apiFetch("/results/me")
       .then((data) => {
         const merged = [...loadLocalResults(), ...(data.items || [])];
-        setResults(merged);
+        setResults(uniqueResults(merged));
       })
       .catch(() => setResults(loadLocalResults()));
   }, []);
@@ -1261,7 +1357,7 @@ function ProgressModule() {
       <header className="results-header">
         <div>
           <h2>Results & Performance</h2>
-          <p>Real-time analysis of your career readiness journey.</p>
+          <p>{results.length ? "Analysis based on your saved aptitude and coding attempts." : "Complete tests to start building your performance dashboard."}</p>
         </div>
         <div>
           <button onClick={() => window.print()}><span className="material-symbols-outlined">download</span>Export PDF</button>
@@ -1287,11 +1383,18 @@ function ProgressModule() {
               <div><span className="cyan" />Aptitude <span className="purple" />Coding</div>
             </div>
             <div className="line-chart">
-              <svg viewBox="0 0 640 240" preserveAspectRatio="none">
-                <path d="M0,150 L105,130 L210,145 L315,100 L420,110 L525,80 L640,60" />
-                <path className="purple" d="M0,200 L105,210 L210,180 L315,190 L420,150 L525,140 L640,120" />
-              </svg>
-              <div>{["Jan", "Feb", "Mar", "Apr", "May", "Jun"].map((m) => <span key={m}>{m}</span>)}</div>
+              {recent.length ? (
+                <>
+                  <div className="result-bars">
+                    {recent.map((item, index) => (
+                      <span key={`${item.module}-${item.date}-${index}`} className={item.module === "coding" ? "purple" : ""} style={{ height: `${Math.max(8, resultPercent(item))}%` }}>
+                        <b>{resultPercent(item)}%</b>
+                      </span>
+                    ))}
+                  </div>
+                  <div>{recent.map((item, index) => <span key={`${item.date}-${index}`}>{new Date(item.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>)}</div>
+                </>
+              ) : <div className="empty-chart">Your score trend will appear after saved attempts.</div>}
             </div>
           </div>
         </section>
@@ -1299,14 +1402,14 @@ function ProgressModule() {
         <aside className="results-side">
           <div className="weak-card">
             <h3><span className="material-symbols-outlined">warning</span>Weak Areas</h3>
-            {weak.map((item) => <div key={item.topic} className="weak-item"><div><b>{item.topic}</b><strong>{item.score}%</strong></div><i><span style={{ width: `${item.score}%` }} /></i></div>)}
+            {weak.length ? weak.map((item) => <div key={item.topic} className="weak-item"><div><b>{item.topic}</b><strong>{item.score}%</strong></div><p>{item.note}</p><i><span style={{ width: `${item.score}%` }} /></i></div>) : <p className="clean-empty">No weak areas detected from your latest saved attempts.</p>}
             <button>Unlock Practice Modules</button>
           </div>
           <div className="leader-card">
-            <div><h3>Batch Ranking</h3><span>Top 12%</span></div>
-            <div className="user-rank"><strong>#42</strong><span>P</span><p><b>Pruthvi Raj (You)</b><small>2,840 Points</small></p></div>
-            {leaderboard.map((item) => <div key={item.rank} className="rank-row"><strong>#{item.rank}</strong><span>{item.initials}</span><p><b>{item.name}</b><small>{item.points.toLocaleString()} Points</small></p>{item.rank === 1 && <span className="material-symbols-outlined medal">military_tech</span>}</div>)}
-            <button>View Full Leaderboard</button>
+            <div><h3>Your Readiness</h3><span>{results.length ? `${Math.round((aptitudePercent + codingPercent) / (lastAptitude && lastCoding ? 2 : 1))}%` : "Locked"}</span></div>
+            <div className="user-rank"><strong>{results.length}</strong><span>P</span><p><b>Pruthvi Raj</b><small>{results.length ? "Saved attempts" : "No attempts yet"}</small></p></div>
+            <p className="clean-empty">Batch ranking will unlock after enough students and at least 3 saved attempts are available.</p>
+            <button>View Saved Results</button>
           </div>
         </aside>
       </div>
@@ -1314,7 +1417,7 @@ function ProgressModule() {
       <section className="saved-results-card">
         <div><h3>Saved Test Results</h3><p>Aptitude and coding submissions saved from your practice sessions.</p></div>
         <div className="saved-results-table">
-          {(results.length ? results.slice(-8).reverse() : [{ module: "demo", score: 0, total: 0, date: new Date().toISOString(), details: { title: "No saved results yet" } }]).map((item, index) => {
+          {(results.length ? results.slice(-8).reverse() : []).map((item, index) => {
             const rowKey = `${item.module}-${item.date}-${index}`;
             return (
               <section key={rowKey} className="saved-result-entry">
@@ -1328,6 +1431,7 @@ function ProgressModule() {
               </section>
             );
           })}
+          {!results.length && <div className="results-empty-row">No saved results yet. Take an aptitude test or submit coding practice to review answers here.</div>}
         </div>
       </section>
 
