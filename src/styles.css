@@ -780,8 +780,7 @@ textarea {
   grid-column: 1 / -1;
 }
 
-.lp-preview-grid small,
-.lp-floating-widget small {
+.lp-preview-grid small {
   color: #c6c6cd;
   font-size: 12px;
   font-weight: 700;
@@ -816,35 +815,6 @@ textarea {
   flex: 1;
   border-radius: 10px 10px 0 0;
   background: linear-gradient(180deg, #4cd7f6, #d0bcff);
-}
-
-.lp-floating-widget {
-  position: absolute;
-  left: -10px;
-  top: 72px;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 16px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  animation: lp-float 3.2s ease-in-out infinite;
-}
-
-.lp-floating-widget .material-symbols-outlined,
-.lp-floating-widget small {
-  color: #4cd7f6;
-}
-
-.lp-floating-widget strong {
-  display: block;
-  color: #f8fbff;
-}
-
-@keyframes lp-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
 }
 
 .lp-stats,
@@ -3735,10 +3705,6 @@ textarea:focus-visible {
     height: 210px;
     margin-top: 28px;
     transform: none;
-  }
-
-  .lp-floating-widget {
-    left: 18px;
   }
 
   .coding-problem-card {

@@ -344,10 +344,6 @@ function LandingPage({ onAuth }) {
                 <div className="lp-mini-bars">{[42, 68, 52, 88, 76, 48, 36].map((height, index) => <span key={index} style={{ height: `${height}%` }} />)}</div>
               </section>
             </div>
-            <div className="lp-floating-widget">
-              <span className="material-symbols-outlined">verified</span>
-              <div><small>Verified Skill</small><strong>Data Structures</strong></div>
-            </div>
           </div>
         </div>
       </section>
