@@ -45,9 +45,9 @@ const MOCK_INTERVIEW = {
 };
 
 const CODING_PROBLEMS = [
-  { id: 1, title: "Reverse a String", difficulty: "Easy", desc: "Write a function that reverses a given string.", example: 'Input: "hello"\nOutput: "olleh"', starterPython: '# Write your code here\ndef reverse_string(s):\n    pass\n\nprint(reverse_string("hello"))', starterJava: "public class Main {\n  public static void main(String[] args) {\n    // Write your code here\n  }\n}", starterC: "#include <stdio.h>\nint main(){\n  // Write your code here\n  return 0;\n}" },
-  { id: 2, title: "Find Factorial", difficulty: "Easy", desc: "Write a function to find the factorial of a given number.", example: "Input: 5\nOutput: 120", starterPython: "def factorial(n):\n    # Write your code here\n    pass\n\nprint(factorial(5))" },
-  { id: 3, title: "Check Palindrome", difficulty: "Medium", desc: "Check if a given string is a palindrome.", example: 'Input: "racecar"\nOutput: True', starterPython: "def is_palindrome(s):\n    # Write your code here\n    pass\n\nprint(is_palindrome('racecar'))" },
+  { id: 1, title: "Reverse a String", difficulty: "Beginner", desc: "Write a function that reverses a given string.", example: 'Input: "hello"\nOutput: "olleh"', starterPython: '# Write your code here\ndef reverse_string(s):\n    pass\n\nprint(reverse_string("hello"))', starterJava: "public class Main {\n  public static void main(String[] args) {\n    // Write your code here\n  }\n}", starterC: "#include <stdio.h>\nint main(){\n  // Write your code here\n  return 0;\n}", solution: "def reverse_string(s):\n    return s[::-1]\n\nprint(reverse_string(\"hello\"))" },
+  { id: 2, title: "Find Factorial", difficulty: "Beginner", desc: "Write a function to find the factorial of a given number.", example: "Input: 5\nOutput: 120", starterPython: "def factorial(n):\n    # Write your code here\n    pass\n\nprint(factorial(5))", solution: "def factorial(n):\n    ans = 1\n    for i in range(2, n + 1):\n        ans *= i\n    return ans\n\nprint(factorial(5))" },
+  { id: 3, title: "Check Palindrome", difficulty: "Medium", desc: "Check if a given string is a palindrome.", example: 'Input: "racecar"\nOutput: True', starterPython: "def is_palindrome(s):\n    # Write your code here\n    pass\n\nprint(is_palindrome('racecar'))", solution: "def is_palindrome(s):\n    cleaned = ''.join(ch.lower() for ch in s if ch.isalnum())\n    return cleaned == cleaned[::-1]\n\nprint(is_palindrome('racecar'))" },
 ];
 
 const EXTRA_APTITUDE = [
@@ -59,15 +59,49 @@ const EXTRA_APTITUDE = [
   { q: "Meaning of 'DILIGENT'.", opts: ["Lazy", "Careful", "Careless", "Late"], ans: 1, cat: "Verbal" },
 ];
 
+const APTITUDE_LEVEL_QUESTIONS = {
+  Beginner: [...MOCK_APTITUDE, ...EXTRA_APTITUDE].map((item) => ({ ...item, level: "Beginner" })),
+  Medium: [
+    { q: "A man spends 75% of his salary and saves Rs. 4,500. What is his salary?", opts: ["Rs. 12,000", "Rs. 15,000", "Rs. 18,000", "Rs. 20,000"], ans: 2, cat: "Quantitative", level: "Medium" },
+    { q: "Find the next term: 7, 10, 16, 28, 52, __", opts: ["88", "96", "100", "104"], ans: 2, cat: "Logical", level: "Medium" },
+    { q: "Choose the closest meaning of 'PRAGMATIC'.", opts: ["Practical", "Emotional", "Ancient", "Decorative"], ans: 0, cat: "Verbal", level: "Medium" },
+    { q: "Two numbers are in the ratio 3:5 and their LCM is 120. What is their HCF?", opts: ["4", "8", "12", "24"], ans: 1, cat: "Quantitative", level: "Medium" },
+    { q: "If BOOK is coded as 43 and PAGE is coded as 29, how is READ coded?", opts: ["28", "30", "32", "34"], ans: 0, cat: "Logical", level: "Medium" },
+  ],
+  High: [
+    { q: "A mixture has milk and water in ratio 7:3. If 20 litres is replaced by water, the ratio becomes 7:5. Find original quantity.", opts: ["80 L", "90 L", "100 L", "120 L"], ans: 2, cat: "Quantitative", level: "High" },
+    { q: "In how many ways can the letters of PLACEMENT be arranged so vowels are always together?", opts: ["60480", "120960", "181440", "362880"], ans: 1, cat: "Quantitative", level: "High" },
+    { q: "Statement: All coders are learners. Some learners are analysts. Which conclusion definitely follows?", opts: ["Some coders are analysts", "All analysts are coders", "Some learners are coders", "No analyst is a coder"], ans: 2, cat: "Logical", level: "High" },
+    { q: "Choose the sentence with the correct parallel structure.", opts: ["She likes coding, testing, and to debug.", "She likes to code, testing, and debugging.", "She likes coding, testing, and debugging.", "She likes code, to test, and debugging."], ans: 2, cat: "Verbal", level: "High" },
+    { q: "If x + 1/x = 5, find x^2 + 1/x^2.", opts: ["21", "23", "25", "27"], ans: 1, cat: "Quantitative", level: "High" },
+  ],
+};
+
 const EXTRA_CODING = [
-  { title: "Sum of Array", difficulty: "Easy", desc: "Return the sum of all numbers in an array.", example: "Input: [1,2,3]\nOutput: 6", starterPython: "def array_sum(nums):\n    pass\n\nprint(array_sum([1,2,3]))" },
-  { title: "Count Vowels", difficulty: "Easy", desc: "Count vowels in a given string.", example: 'Input: "placement"\nOutput: 3', starterPython: "def count_vowels(s):\n    pass\n\nprint(count_vowels('placement'))" },
-  { title: "Find Maximum", difficulty: "Easy", desc: "Find the maximum number in a list.", example: "Input: [4,8,2]\nOutput: 8", starterPython: "def find_max(nums):\n    pass\n\nprint(find_max([4,8,2]))" },
-  { title: "Remove Duplicates", difficulty: "Medium", desc: "Return unique values from a list while preserving order.", example: "Input: [1,2,1,3]\nOutput: [1,2,3]", starterPython: "def unique_values(nums):\n    pass\n\nprint(unique_values([1,2,1,3]))" },
+  { title: "Sum of Array", difficulty: "Beginner", desc: "Return the sum of all numbers in an array.", example: "Input: [1,2,3]\nOutput: 6", starterPython: "def array_sum(nums):\n    pass\n\nprint(array_sum([1,2,3]))", solution: "def array_sum(nums):\n    return sum(nums)\n\nprint(array_sum([1,2,3]))" },
+  { title: "Count Vowels", difficulty: "Beginner", desc: "Count vowels in a given string.", example: 'Input: "placement"\nOutput: 3', starterPython: "def count_vowels(s):\n    pass\n\nprint(count_vowels('placement'))", solution: "def count_vowels(s):\n    return sum(1 for ch in s.lower() if ch in 'aeiou')\n\nprint(count_vowels('placement'))" },
+  { title: "Find Maximum", difficulty: "Beginner", desc: "Find the maximum number in a list.", example: "Input: [4,8,2]\nOutput: 8", starterPython: "def find_max(nums):\n    pass\n\nprint(find_max([4,8,2]))", solution: "def find_max(nums):\n    best = nums[0]\n    for num in nums[1:]:\n        if num > best:\n            best = num\n    return best\n\nprint(find_max([4,8,2]))" },
+  { title: "Remove Duplicates", difficulty: "Medium", desc: "Return unique values from a list while preserving order.", example: "Input: [1,2,1,3]\nOutput: [1,2,3]", starterPython: "def unique_values(nums):\n    pass\n\nprint(unique_values([1,2,1,3]))", solution: "def unique_values(nums):\n    seen = set()\n    ans = []\n    for num in nums:\n        if num not in seen:\n            seen.add(num)\n            ans.append(num)\n    return ans\n\nprint(unique_values([1,2,1,3]))" },
+  { title: "Two Sum", difficulty: "Medium", desc: "Return indices of two numbers that add up to the target.", example: "Input: nums=[2,7,11,15], target=9\nOutput: [0,1]", starterPython: "def two_sum(nums, target):\n    pass\n\nprint(two_sum([2,7,11,15], 9))", solution: "def two_sum(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        need = target - num\n        if need in seen:\n            return [seen[need], i]\n        seen[num] = i\n\nprint(two_sum([2,7,11,15], 9))" },
+  { title: "Longest Unique Substring", difficulty: "High", desc: "Find the length of the longest substring without repeating characters.", example: 'Input: "abcabcbb"\nOutput: 3', starterPython: "def longest_unique_substring(s):\n    pass\n\nprint(longest_unique_substring('abcabcbb'))", solution: "def longest_unique_substring(s):\n    left = 0\n    seen = {}\n    best = 0\n    for right, ch in enumerate(s):\n        if ch in seen and seen[ch] >= left:\n            left = seen[ch] + 1\n        seen[ch] = right\n        best = max(best, right - left + 1)\n    return best\n\nprint(longest_unique_substring('abcabcbb'))" },
+  { title: "Minimum Coins", difficulty: "High", desc: "Given coin denominations and an amount, return the minimum number of coins needed.", example: "Input: coins=[1,2,5], amount=11\nOutput: 3", starterPython: "def min_coins(coins, amount):\n    pass\n\nprint(min_coins([1,2,5], 11))", solution: "def min_coins(coins, amount):\n    dp = [amount + 1] * (amount + 1)\n    dp[0] = 0\n    for value in range(1, amount + 1):\n        for coin in coins:\n            if coin <= value:\n                dp[value] = min(dp[value], dp[value - coin] + 1)\n    return dp[amount] if dp[amount] <= amount else -1\n\nprint(min_coins([1,2,5], 11))" },
 ];
 
 function shuffled(items) {
   return [...items].sort(() => Math.random() - 0.5);
+}
+
+function localAptitudeQuestions(level, category, count = 5) {
+  const pool = APTITUDE_LEVEL_QUESTIONS[level] || APTITUDE_LEVEL_QUESTIONS.Beginner;
+  const filtered = category === "All" ? pool : pool.filter((item) => item.cat === category);
+  const source = filtered.length >= count ? filtered : pool;
+  return shuffled(source).slice(0, count).map((item, index) => ({ ...item, id: Date.now() + index, level }));
+}
+
+function localCodingProblems(level, count = 3) {
+  const pool = [...CODING_PROBLEMS, ...EXTRA_CODING].filter((item) => item.difficulty === level);
+  const source = pool.length >= count ? pool : [...CODING_PROBLEMS, ...EXTRA_CODING];
+  return shuffled(source).slice(0, count).map((item, index) => ({ ...item, id: Date.now() + index, difficulty: item.difficulty || level }));
 }
 
 const AI_SUGGESTIONS = [
@@ -675,8 +709,10 @@ function AptitudeModule() {
   const [marked, setMarked] = useState({});
   const [timeLeft, setTimeLeft] = useState(300);
   const [category, setCategory] = useState("All");
-  const [questionBank, setQuestionBank] = useState(MOCK_APTITUDE);
+  const [level, setLevel] = useState("Beginner");
+  const [questionBank, setQuestionBank] = useState(() => localAptitudeQuestions("Beginner", "All", 5));
   const [generating, setGenerating] = useState(false);
+  const [questionNotice, setQuestionNotice] = useState("");
   const timerRef = useRef(null);
   const resultSavedRef = useRef(false);
   const filtered = category === "All" ? questionBank : questionBank.filter((q) => q.cat === category);
@@ -700,21 +736,24 @@ function AptitudeModule() {
   useEffect(() => {
     if (phase !== "result" || resultSavedRef.current) return;
     resultSavedRef.current = true;
-    saveLocalResult({ module: "aptitude", score, total: filtered.length, details: { category, answers, questions: filtered } });
+    saveLocalResult({ module: "aptitude", score, total: filtered.length, details: { category, level, answers, questions: filtered } });
     apiFetch("/results", {
       method: "POST",
-      body: JSON.stringify({ module: "aptitude", score, total: filtered.length, details: { category, answers, questions: filtered } }),
+      body: JSON.stringify({ module: "aptitude", score, total: filtered.length, details: { category, level, answers, questions: filtered } }),
     }).catch(() => {});
-  }, [phase, score, filtered.length, category]);
+  }, [phase, score, filtered.length, category, level]);
 
   const generateAptitude = async () => {
     setGenerating(true);
+    setQuestionNotice("");
     try {
-      const data = await apiFetch("/ai/questions", { method: "POST", body: JSON.stringify({ kind: "aptitude", category, count: 5 }) });
+      const data = await apiFetch("/ai/questions", { method: "POST", body: JSON.stringify({ kind: "aptitude", category, level, count: 5 }) });
       const items = (data.items || []).map((item, index) => ({ ...item, id: Date.now() + index }));
-      setQuestionBank(items.length > 1 ? items : shuffled([...MOCK_APTITUDE, ...EXTRA_APTITUDE]).slice(0, 5).map((item, index) => ({ ...item, id: Date.now() + index })));
+      setQuestionBank(items.length > 1 ? shuffled(items).slice(0, 5).map((item) => ({ ...item, level: item.level || level })) : localAptitudeQuestions(level, category, 5));
+      setQuestionNotice(items.length > 1 ? `${level} AI questions loaded.` : `${level} local question set loaded.`);
     } catch {
-      setQuestionBank(shuffled([...MOCK_APTITUDE, ...EXTRA_APTITUDE]).slice(0, 5).map((item, index) => ({ ...item, id: Date.now() + index })));
+      setQuestionBank(localAptitudeQuestions(level, category, 5));
+      setQuestionNotice("AI question service is unavailable, so a fresh local set was loaded.");
     } finally {
       setCurrent(0);
       setAnswers({});
@@ -734,11 +773,17 @@ function AptitudeModule() {
       </div>
       <div className="aptitude-config-card">
         <h3>Test Configuration</h3>
+        <label className="config-label">Level</label>
         <div className="aptitude-category-row">
-          {["All", "Quantitative", "Logical", "Verbal"].map((cat) => <button key={cat} onClick={() => setCategory(cat)} className={category === cat ? "active" : ""}>{cat}</button>)}
+          {["Beginner", "Medium", "High"].map((item) => <button key={item} onClick={() => { setLevel(item); setQuestionBank(localAptitudeQuestions(item, category, 5)); setCurrent(0); setAnswers({}); setMarked({}); }} className={level === item ? "active" : ""}>{item}</button>)}
         </div>
+        <label className="config-label">Category</label>
+        <div className="aptitude-category-row">
+          {["All", "Quantitative", "Logical", "Verbal"].map((cat) => <button key={cat} onClick={() => { setCategory(cat); setQuestionBank(localAptitudeQuestions(level, cat, 5)); setCurrent(0); setAnswers({}); setMarked({}); }} className={category === cat ? "active" : ""}>{cat}</button>)}
+        </div>
+        {questionNotice && <div className="module-notice">{questionNotice}</div>}
         <div className="aptitude-config-stats">
-          {[["Questions", filtered.length], ["Time Limit", "5 min"], ["Marking", "+1 / 0"]].map(([k, v]) => <div key={k}><strong>{v}</strong><span>{k}</span></div>)}
+          {[["Questions", filtered.length], ["Level", level], ["Marking", "+1 / 0"]].map(([k, v]) => <div key={k}><strong>{v}</strong><span>{k}</span></div>)}
         </div>
         <div className="aptitude-start-row">
           <button className="aptitude-start" onClick={generateAptitude}>{generating ? "Generating..." : "Generate Fresh Questions"}</button>
@@ -843,7 +888,8 @@ function AptitudeModule() {
   );
 }
 function CodingModule() {
-  const [problemBank, setProblemBank] = useState(CODING_PROBLEMS);
+  const [codingLevel, setCodingLevel] = useState("Beginner");
+  const [problemBank, setProblemBank] = useState(() => localCodingProblems("Beginner", 3));
   const [selected, setSelected] = useState(null);
   const [lang, setLang] = useState("Python");
   const [code, setCode] = useState("");
@@ -858,12 +904,12 @@ function CodingModule() {
     setGeneratingProblems(true);
     setCodingNotice("");
     try {
-      const data = await apiFetch("/ai/questions", { method: "POST", body: JSON.stringify({ kind: "coding", count: 3 }) });
+      const data = await apiFetch("/ai/questions", { method: "POST", body: JSON.stringify({ kind: "coding", level: codingLevel, count: 3 }) });
       const items = (data.items || []).map((item, index) => ({ ...item, id: Date.now() + index, starterJava: item.starterJava, starterC: item.starterC }));
-      setProblemBank(items.length > 1 ? items : shuffled([...CODING_PROBLEMS, ...EXTRA_CODING]).slice(0, 3).map((item, index) => ({ ...item, id: Date.now() + index })));
-      setCodingNotice(items.length > 1 ? "Fresh AI coding set loaded." : "Fresh local coding set loaded.");
+      setProblemBank(items.length > 1 ? shuffled(items).slice(0, 3).map((item) => ({ ...item, difficulty: item.difficulty || codingLevel, solution: item.solution || "Reference solution will be available after local problems are loaded." })) : localCodingProblems(codingLevel, 3));
+      setCodingNotice(items.length > 1 ? `${codingLevel} AI coding set loaded.` : `${codingLevel} local coding set loaded.`);
     } catch {
-      setProblemBank(shuffled([...CODING_PROBLEMS, ...EXTRA_CODING]).slice(0, 3).map((item, index) => ({ ...item, id: Date.now() + index })));
+      setProblemBank(localCodingProblems(codingLevel, 3));
       setCodingNotice("AI question service is unavailable, so a fresh local coding set was loaded.");
     } finally {
       setSelected(null);
@@ -881,6 +927,13 @@ function CodingModule() {
         </div>
         <button className="generate-code-btn" onClick={generateCodingProblems}>{generatingProblems ? "Generating..." : "Generate Fresh Problems"}</button>
       </div>
+      <div className="level-tabs">
+        {["Beginner", "Medium", "High"].map((item) => (
+          <button key={item} className={codingLevel === item ? "active" : ""} onClick={() => { setCodingLevel(item); setProblemBank(localCodingProblems(item, 3)); setCodingNotice(`${item} local coding set loaded.`); }}>
+            {item}
+          </button>
+        ))}
+      </div>
       {codingNotice && <div className="module-notice">{codingNotice}</div>}
       <div className="coding-problem-list">
         {problemBank.map((p) => (
@@ -890,7 +943,7 @@ function CodingModule() {
               <h3>{p.title}</h3>
               <p>{p.desc}</p>
             </div>
-            <Badge color={solvedProblems.includes(p.id) ? "success" : p.difficulty === "Easy" ? "success" : "warning"}>{solvedProblems.includes(p.id) ? "Solved" : p.difficulty}</Badge>
+            <Badge color={solvedProblems.includes(p.id) ? "success" : p.difficulty === "Beginner" ? "success" : p.difficulty === "Medium" ? "warning" : "danger"}>{solvedProblems.includes(p.id) ? "Solved" : p.difficulty}</Badge>
             <strong>{solvedProblems.includes(p.id) ? "Review" : "Open"}</strong>
           </button>
         ))}
@@ -917,9 +970,10 @@ function CodingModule() {
 
   const codingScore = () => {
     if (code.includes("pass")) return 0;
-    if (selected.id === 1 && code.includes("[::-1]")) return 3;
-    if (selected.id === 2 && (code.includes("*") || code.includes("math"))) return 3;
-    if (code.trim().length > 40) return 2;
+    if (selected.title === "Reverse a String" && code.includes("[::-1]")) return 3;
+    if (selected.title === "Find Factorial" && (code.includes("*") || code.includes("math"))) return 3;
+    if (selected.title === "Two Sum" && code.includes("{}") && code.includes("target")) return 3;
+    if (code.trim().length > 60) return 2;
     return 1;
   };
 
@@ -928,7 +982,7 @@ function CodingModule() {
     setOutput("Running final test cases...");
     setTimeout(() => {
       const score = codingScore();
-      const result = { module: "coding", score, total: 3, details: { problemId: selected.id, title: selected.title, language: lang, code, problem: selected.desc, example: selected.example } };
+      const result = { module: "coding", score, total: 3, details: { problemId: selected.id, title: selected.title, difficulty: selected.difficulty, language: lang, code, problem: selected.desc, example: selected.example, solution: selected.solution || "Reference solution is not available for this generated problem yet." } };
       saveLocalResult(result);
       apiFetch("/results", { method: "POST", body: JSON.stringify(result) }).catch(() => {});
       const nextSolved = Array.from(new Set([...solvedProblems, selected.id]));
@@ -989,7 +1043,7 @@ function CodingModule() {
       <div className="code-split">
         <aside className="problem-pane custom-scrollbar">
           <div className="problem-tags">
-            <Badge color={selected.difficulty === "Easy" ? "success" : "warning"}>{selected.difficulty}</Badge>
+            <Badge color={selected.difficulty === "Beginner" ? "success" : selected.difficulty === "Medium" ? "warning" : "danger"}>{selected.difficulty}</Badge>
             <span>45% Success Rate</span>
           </div>
           <p className="problem-lead">{selected.desc}</p>
@@ -1449,13 +1503,14 @@ function ResultDetails({ item }) {
   if (item.module === "aptitude" && item.details?.questions) {
     return (
       <div className="result-detail-panel">
+        <p><b>Level:</b> {item.details.level || "Beginner"} | <b>Category:</b> {item.details.category || "All"}</p>
         {item.details.questions.map((q, index) => {
           const chosen = item.details.answers?.[index];
           return (
             <div key={`${q.q}-${index}`}>
               <b>Q{index + 1}. {q.q}</b>
               <p>Your answer: {chosen !== undefined ? q.opts[chosen] : "Not answered"}</p>
-              <p>Correct answer: {q.opts[q.ans]}</p>
+              <p>Original correct answer: {q.opts[q.ans]}</p>
             </div>
           );
         })}
@@ -1466,8 +1521,13 @@ function ResultDetails({ item }) {
     return (
       <div className="result-detail-panel">
         <b>{item.details?.title}</b>
+        <p>Level: {item.details?.difficulty || "Practice"}</p>
         <p>{item.details?.problem}</p>
+        <p>Example: {item.details?.example}</p>
+        <b>Your submitted code</b>
         <pre>{item.details?.code}</pre>
+        <b>Reference solution</b>
+        <pre>{item.details?.solution || "Reference solution is not available for this generated problem yet."}</pre>
       </div>
     );
   }

@@ -102,6 +102,7 @@ class ResumeReviewIn(BaseModel):
 class QuestionGenerateIn(BaseModel):
     kind: str = "aptitude"
     category: str = "All"
+    level: str = "Beginner"
     count: int = 5
 
 
@@ -274,25 +275,42 @@ async def resume_review(payload: ResumeReviewIn, current_user: Annotated[UserOut
 
 @app.post("/ai/questions")
 async def ai_questions(payload: QuestionGenerateIn, current_user: Annotated[UserOut, Depends(get_current_user)]):
+    level = payload.level if payload.level in {"Beginner", "Medium", "High"} else "Beginner"
     if payload.kind == "coding":
-        fallback = {
-            "items": [
-                {
-                    "title": "Sum of Array",
-                    "difficulty": "Easy",
-                    "desc": "Write a function that returns the sum of all numbers in an array.",
-                    "example": "Input: [1,2,3]\nOutput: 6",
-                    "starterPython": "def array_sum(nums):\n    pass\n\nprint(array_sum([1,2,3]))",
-                }
-            ]
+        coding_fallback = {
+            "Beginner": [
+                {"title": "Count Vowels", "difficulty": "Beginner", "desc": "Count vowels in a given string.", "example": 'Input: "placement"\nOutput: 3', "starterPython": "def count_vowels(s):\n    pass\n\nprint(count_vowels('placement'))", "solution": "def count_vowels(s):\n    return sum(1 for ch in s.lower() if ch in 'aeiou')"},
+                {"title": "Find Maximum", "difficulty": "Beginner", "desc": "Find the maximum number in a list.", "example": "Input: [4,8,2]\nOutput: 8", "starterPython": "def find_max(nums):\n    pass\n\nprint(find_max([4,8,2]))", "solution": "def find_max(nums):\n    return max(nums)"},
+                {"title": "Sum of Array", "difficulty": "Beginner", "desc": "Return the sum of all numbers in an array.", "example": "Input: [1,2,3]\nOutput: 6", "starterPython": "def array_sum(nums):\n    pass\n\nprint(array_sum([1,2,3]))", "solution": "def array_sum(nums):\n    return sum(nums)"},
+            ],
+            "Medium": [
+                {"title": "Remove Duplicates", "difficulty": "Medium", "desc": "Return unique values while preserving order.", "example": "Input: [1,2,1,3]\nOutput: [1,2,3]", "starterPython": "def unique_values(nums):\n    pass\n\nprint(unique_values([1,2,1,3]))", "solution": "def unique_values(nums):\n    seen=set(); ans=[]\n    for n in nums:\n        if n not in seen:\n            seen.add(n); ans.append(n)\n    return ans"},
+                {"title": "Two Sum", "difficulty": "Medium", "desc": "Return indices of two numbers that add to target.", "example": "Input: nums=[2,7,11,15], target=9\nOutput: [0,1]", "starterPython": "def two_sum(nums, target):\n    pass\n\nprint(two_sum([2,7,11,15], 9))", "solution": "def two_sum(nums, target):\n    seen={}\n    for i,n in enumerate(nums):\n        if target-n in seen: return [seen[target-n], i]\n        seen[n]=i"},
+                {"title": "Valid Anagram", "difficulty": "Medium", "desc": "Check whether two strings are anagrams.", "example": 'Input: "listen", "silent"\nOutput: True', "starterPython": "def is_anagram(a, b):\n    pass\n\nprint(is_anagram('listen', 'silent'))", "solution": "def is_anagram(a,b):\n    return sorted(a) == sorted(b)"},
+            ],
+            "High": [
+                {"title": "Longest Unique Substring", "difficulty": "High", "desc": "Return length of longest substring without repeating characters.", "example": 'Input: "abcabcbb"\nOutput: 3', "starterPython": "def longest_unique_substring(s):\n    pass\n\nprint(longest_unique_substring('abcabcbb'))", "solution": "def longest_unique_substring(s):\n    left=0; seen={}; best=0\n    for right,ch in enumerate(s):\n        if ch in seen and seen[ch] >= left: left = seen[ch] + 1\n        seen[ch]=right; best=max(best,right-left+1)\n    return best"},
+                {"title": "Minimum Coins", "difficulty": "High", "desc": "Return minimum coins needed for an amount.", "example": "Input: coins=[1,2,5], amount=11\nOutput: 3", "starterPython": "def min_coins(coins, amount):\n    pass\n\nprint(min_coins([1,2,5], 11))", "solution": "def min_coins(coins, amount):\n    dp=[amount+1]*(amount+1); dp[0]=0\n    for x in range(1,amount+1):\n        for c in coins:\n            if c <= x: dp[x]=min(dp[x],dp[x-c]+1)\n    return dp[amount] if dp[amount] <= amount else -1"},
+                {"title": "Merge Intervals", "difficulty": "High", "desc": "Merge all overlapping intervals.", "example": "Input: [[1,3],[2,6],[8,10]]\nOutput: [[1,6],[8,10]]", "starterPython": "def merge_intervals(intervals):\n    pass\n\nprint(merge_intervals([[1,3],[2,6],[8,10]]))", "solution": "def merge_intervals(intervals):\n    intervals.sort(); ans=[]\n    for s,e in intervals:\n        if not ans or s > ans[-1][1]: ans.append([s,e])\n        else: ans[-1][1]=max(ans[-1][1], e)\n    return ans"},
+            ],
         }
-        prompt = "Generate 3 beginner placement coding problems as JSON items with title,difficulty,desc,example,starterPython."
+        fallback = {
+            "items": coding_fallback[level][: payload.count]
+        }
+        prompt = f"Generate {payload.count} {level} placement coding problems as JSON items with title,difficulty,desc,example,starterPython,solution."
     else:
+        aptitude_fallback = [
+            {"q": "A train covers 120 km in 2 hours. What is its speed?", "opts": ["40", "50", "60", "70"], "ans": 2, "cat": "Quantitative", "level": level},
+            {"q": "Choose the odd one: 3, 6, 11, 18, 27, 38", "opts": ["11", "18", "27", "38"], "ans": 3, "cat": "Logical", "level": level},
+            {"q": "Choose the synonym of 'BRIEF'.", "opts": ["Short", "Heavy", "Late", "Wide"], "ans": 0, "cat": "Verbal", "level": level},
+            {"q": "If x + 1/x = 5, find x^2 + 1/x^2.", "opts": ["21", "23", "25", "27"], "ans": 1, "cat": "Quantitative", "level": level},
+            {"q": "Statement: All coders are learners. Which definitely follows?", "opts": ["Some learners are coders", "All learners are coders", "No coder learns", "Some coders are analysts"], "ans": 0, "cat": "Logical", "level": level},
+        ]
+        if payload.category != "All":
+            aptitude_fallback = [item for item in aptitude_fallback if item["cat"] == payload.category] or aptitude_fallback
         fallback = {
-            "items": [
-                {"q": "A train covers 120 km in 2 hours. What is its speed?", "opts": ["40", "50", "60", "70"], "ans": 2, "cat": "Quantitative"}
-            ]
+            "items": aptitude_fallback[: payload.count]
         }
-        prompt = f"Generate {payload.count} {payload.category} aptitude MCQs as JSON items with q, opts array of 4, ans index, cat."
+        prompt = f"Generate {payload.count} {level} {payload.category} aptitude MCQs as JSON items with q, opts array of 4, ans index, cat, level."
     text = await ai_text(prompt, "")
     return {"raw": text, **fallback}
